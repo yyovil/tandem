@@ -1,81 +1,71 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"net/http"
 	"os"
 )
 
 // this model reprs your entire state of the cli app.
 type Model struct {
+	textarea textarea.Model
 	message,
 	sessionId,
 	userId,
+	streamingResponse,
 	/*
 		TODO: user should be able to select the model by himself because you don't know how they be feeling some type of way. create a ENUM for models.
 	*/
 	model string
 }
 
-// Request model for running an agent
-type RunRequest struct {
-	sessionId,
-	model,
-	userId,
-	message string
-	stream bool
-}
-
 func (m Model) Init() tea.Cmd {
-	return nil
+	return textarea.Blink
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		switch msg.Type {
+		case tea.KeyCtrlC:
 			return m, tea.Quit
-		case "enter":
-			// we have to make the post req.
-			runRequest := RunRequest{
-				message:   m.message,
-				model:     m.model,
-				sessionId: m.sessionId,
-				userId:    m.userId,
+		case tea.KeyTab:
+			// TODO: make a request to the server to get the response stream.
+			return m, m.GetCompletionStreamCmd()
+		default:
+			if !m.textarea.Focused() {
+				cmd = m.textarea.Focus()
+				cmds = append(cmds, cmd)
 			}
-
-			requestBody, err := json.Marshal(runRequest)
-			if err != nil {
-				// wouldn't it be nice to tell the reason why it failed during in the dev env?
-				return m, tea.Quit
-			}
-
-			// format the endpoint str.
-			resp, err := http.Post(os.Getenv("ENDPOINT"), "application/json", bytes.NewBuffer(requestBody))
-			if err != nil {
-				return m, tea.Quit
-			}
-
-			defer resp.Body.Close()
 		}
 	}
-	return m, nil
+	m.textarea, cmd = m.textarea.Update(msg)
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
-func (m Model) View() string {}
-
-// func (m Model) Stream(msg completionOutput) tea.Cmd{
-// 	return func() {}
-// }
+// update the View to render the streaming response.
+func (m Model) View() string {
+	return fmt.Sprintf(
+		"Chat with Sage.\n\n%s\n\n%s",
+		m.textarea.View(),
+		"ctrl+c: quit | tab: to send",
+	) + "\n\n"
+}
 
 func initialModel() tea.Model {
+	ta := textarea.New()
+	ta.Placeholder = "Enter your prompt..."
+	ta.Focus()
+
 	return Model{
+		textarea:  ta,
 		message:   "",
-		model:     "gemini-2.0-flash-lite",
+		model:     ModelGeminiFlashLite,
 		userId:    "slimeMaster",
 		sessionId: "slimeMasterSession1",
 	}
@@ -87,9 +77,7 @@ func main() {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
-	append()
 }
-
 
 /*
 TODO:
