@@ -19,6 +19,7 @@ agents_router = APIRouter(prefix="/agents", tags=["Agents"])
 class Model(str, Enum):
     gpt_4o = "gpt-4o"
     o3_mini = "o3-mini"
+    gemini_2_flash_lite = "gemini-2.0-flash-lite"
 
 
 @agents_router.get("", response_model=List[str])
@@ -56,7 +57,7 @@ class RunRequest(BaseModel):
 
     message: str
     stream: bool = True
-    model: Model = Model.gpt_4o
+    model: Model = Model.gemini_2_flash_lite
     user_id: Optional[str] = None
     session_id: Optional[str] = None
 

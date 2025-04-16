@@ -20,11 +20,11 @@
             # docker is going to need a little config to work as expected. need to include in some specific group
           ];
           shellHook = ''
+          echo -e "\033[95mdevelopment env ready\033[0m"
+          
           # include dockerd and docker start cmds.
           # include cmds to install the deps for both the projects.
           source agents/.venv/bin/activate
-          source .env
-
           '';
         };
     };

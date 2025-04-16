@@ -2,7 +2,7 @@ from textwrap import dedent
 from typing import Optional
 
 from agno.agent import Agent, AgentKnowledge
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.vectordb.pgvector import PgVector, SearchType
@@ -11,7 +11,7 @@ from db.session import db_url
 
 
 def get_sage(
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-2.0-flash-lite",
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
     debug_mode: bool = True,
@@ -27,7 +27,7 @@ def get_sage(
         agent_id="sage",
         user_id=user_id,
         session_id=session_id,
-        model=OpenAIChat(id=model_id),
+        model=Gemini(id=model_id),
         # Tools available to the agent
         tools=[DuckDuckGoTools()],
         # Storage for the agent

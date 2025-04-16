@@ -9,14 +9,13 @@ class AgentType(Enum):
     SAGE = "sage"
     SCHOLAR = "scholar"
 
-
 def get_available_agents() -> List[str]:
     """Returns a list of all available agent IDs."""
     return [agent.value for agent in AgentType]
 
 
 def get_agent(
-    model_id: str = "gpt-4o",
+    model_id: str = "gemini-2.0-flash-lite",
     agent_id: Optional[AgentType] = None,
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
