@@ -25,6 +25,7 @@
           # include dockerd and docker start cmds.
           # include cmds to install the deps for both the projects.
           source agents/.venv/bin/activate
+          source monorepo.sh
           '';
         };
     };

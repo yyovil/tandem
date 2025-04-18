@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -17,22 +18,25 @@ type RunRequest struct {
 	Model     string `json:"model"`
 	UserId    string `json:"user_id"`
 	Message   string `json:"message"`
+	Stream    bool   `json:"stream"`
 }
 
 // find a better way to provide the available models option.
 const (
-	ModelGeminiFlashLite string = "gemini-2.0-flash-lite"
+	ModelGemini20FlashLite string = "gemini-2.0-flash-lite"
+	ModelGemini25ProPreview0325 string = "gemini-2.5-pro-preview-03-25"
+	ModelGemini25FlashPreview0417 string = "gemini-2.5-flash-preview-04-17"
 )
 
 // this cmd makes the HTTP POST request to an endpoint to receive the response stream.
 func (m *Model) GetCompletionStreamCmd() tea.Cmd {
 	return func() tea.Msg {
-
 		reqBody := RunRequest{
 			SessionId: m.sessionId,
-			Model:     m.model,
+			Model:     ModelGemini25FlashPreview0417,
 			UserId:    m.userId,
 			Message:   m.message,
+			Stream:    true,
 		}
 
 		serialisedReqBody, err := json.Marshal(reqBody)
@@ -41,36 +45,31 @@ func (m *Model) GetCompletionStreamCmd() tea.Cmd {
 			return m
 		}
 
+		endpoint := os.Getenv("ENDPOINT")
+		if endpoint == "" {
+			log.Println("ENDPOINT not set")
+			return m
+		}
+
 		sse, err := http.Post(os.Getenv("ENDPOINT"), "application/json", bytes.NewBuffer(serialisedReqBody))
 
 		if err != nil {
-			// fmt.Println("POST req failed:", err)
+			log.Println("POST req failed:", sse.Status)
 			return m
 		}
 
 		defer sse.Body.Close()
-
 		if sse.StatusCode != http.StatusOK {
-			// fmt.Println("Stream request failed:", sse.Status)
+			log.Println("Stream request failed:", sse.Status)
 			return m
 		}
 
 		streamReader := bufio.NewReader(sse.Body)
 
-		for {
-			line, err := streamReader.ReadString('\n')
-			if err != nil {
-				// exhausted.
-				if err == io.EOF {
-					// we have to return the complete streamed response.
-					break
-				}
-				// fmt.Println("Error reading stream:", err)
-				return m
-			}
-			m.streamingResponse += line
+		line, err := streamReader.ReadString('\n')
+		if err == io.EOF {
+			return streamDoneMsg{}
 		}
-
-		return m
+		return streamChunkMsg{Text: line}
 	}
 }
