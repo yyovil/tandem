@@ -1,5 +1,5 @@
 tui() {
-  "pushd ./tui && go run . ; popd"
+  pushd ./tui && go run . ; popd
 }
 
 run() {
@@ -9,4 +9,16 @@ run() {
     echo "Error: Unknown function '$1'"
     return 1
   fi
+}
+
+agentsup() {
+  pushd ./agents && ag ws up ; popd
+}
+
+agentsdown() {
+  pushd ./agents && ag ws down ; popd
+}
+
+logs() {
+  cat tui/debug.log
 }

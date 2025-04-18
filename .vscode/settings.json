@@ -1,0 +1,18 @@
+{
+  "go.goroot": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/share/go",
+  "go.gopath": "${workspaceFolder}/.go",
+  "go.alternateTools": {
+    "go": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/bin/go",
+    "gopls": "/nix/store/9jrw0f9snjamw6bbc90yy04m0xd5l6zz-gopls-0.18.1/bin/gopls"
+  },
+  "go.useLanguageServer": true,
+  "go.languageServerFlags": [
+    "-rpc.trace"
+  ],
+  "go.toolsEnvVars": {
+    "GOPATH": "${workspaceFolder}/.go",
+    "GOROOT": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/share/go",
+    "GOENV": "${workspaceFolder}/.go/env/env"
+  },
+  "editor.tabSize": 4
+}
