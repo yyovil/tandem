@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
-
+	// "log"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"os"
 )
 
 type State int
@@ -56,6 +55,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height - 10
+		m.viewport.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).BorderStyle(lipgloss.NormalBorder())
+
+		m.textarea.SetWidth(msg.Width)
+		m.textarea.SetHeight(msg.Height / 10)
+
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		// continue ticking if still requesting.
@@ -129,9 +136,14 @@ func initialModel() tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Meter
 
-	vp := viewport.New(100, 10)
-	vp.Style = lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).PaddingRight(2)
+	vp := viewport.New(1, 1)
+	vp.Style = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240"))
 	ta := textarea.New()
+	ta.FocusedStyle = textarea.Style{
+		Base: lipgloss.NewStyle().Border(lipgloss.NormalBorder()),
+	}
+	ta.ShowLineNumbers = false
+
 	ta.Placeholder = "Enter your prompt..."
 	ta.Focus()
 
@@ -156,20 +168,19 @@ func main() {
 	}
 	initialModel()
 
-	// tuiLoop := tea.NewProgram(initialModel(), tea.WithAltScreen())
-	// if _, err := tuiLoop.Run(); err != nil {
-	// 	fmt.Println("Error running program:", err)
-	// 	os.Exit(1)
-	// }
-	endpoint := os.Getenv("ENDPOINT")
-	if endpoint != "" {
-		log.Println("oh fuck! ENDPOINT var is either not (defined or exported).")
+	tuiLoop := tea.NewProgram(initialModel(), tea.WithAltScreen())
+	if _, err := tuiLoop.Run(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
 	}
-	CreateSSEClient(endpoint)
+	// endpoint := os.Getenv("ENDPOINT")
+	// if endpoint != "" {
+	// 	log.Println("oh fuck! ENDPOINT var is either not (defined or exported).")
+	// }
+	// CreateSSEClient(endpoint)
 }
 
 /*
 TODO:
 	>  use errors pkgs to provide better error handling instead of trying to log to stdout as that is being occupied by the tui.
-	> deal with the size.
 */

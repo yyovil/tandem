@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Nix Development Environment",
+            "type": "shell",
+            "command": "nix develop",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "new",
+                "clear": true,
+                "close": true,
+                "showReuseMessage": true
+            },
+            "icon": {
+                "color": "terminal.ansiMagenta",
+                "id": "symbol-event"
+            },
+            "isBackground": true,
+            "runOptions": {
+                "runOn": "folderOpen",
+                "instanceLimit": 1,
+            },
+            "promptOnClose": true
+        }
+    ]
+}

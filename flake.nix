@@ -6,7 +6,7 @@
     { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
     in
     {
       devShells.${system}.default =
@@ -14,6 +14,7 @@
         mkShell {
           buildInputs = [
             python311
+            ruff
             uv
             go
             gopls
@@ -27,6 +28,7 @@
             # docker is going to need a little config to work as expected. need to include in some specific group
           ];
           shellHook = ''
+            export STARSHIP_CONFIG=$PWD/.config/starship.toml
             export GOROOT="${pkgs.go}/share/go"
             export GOPATH="$PWD/.go"
             export PATH="$GOPATH/bin:$PATH"

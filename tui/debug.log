@@ -1,0 +1,7 @@
+debug 2025/04/26 23:26:17 oh fuck! ENDPOINT var is either not (defined or exported).
+debug 2025/04/26 23:26:17 Couldn't send a HTTP POST req:  Post "http://localhost:8000/v1/agents/sage/runs": dial tcp [::1]:8000: connect: connection refused
+debug 2025/04/26 23:27:08 oh fuck! ENDPOINT var is either not (defined or exported).
+debug 2025/04/26 23:27:08 Couldn't send a HTTP POST req:  Post "http://localhost:8000/v1/agents/sage/runs": dial tcp [::1]:8000: connect: connection refused
+debug 2025/04/26 23:27:20 oh fuck! ENDPOINT var is either not (defined or exported).
+debug 2025/04/26 23:27:20 Couldn't send a HTTP POST req:  Post "http://localhost:8000/v1/agents/sage/runs": dial tcp [::1]:8000: connect: connection refused
+debug 2025/04/26 23:28:05 oh fuck! ENDPOINT var is either not (defined or exported).

@@ -2,6 +2,7 @@ from enum import Enum
 from typing import AsyncGenerator, List, Optional
 
 from agno.agent import Agent
+from agno.media import File
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -46,6 +47,7 @@ async def chat_response_streamer(agent: Agent, message: str) -> AsyncGenerator:
     Yields:
         Text chunks from the agent response
     """
+
     run_response = await agent.arun(message, stream=True)
     async for chunk in run_response:
         # chunk.content only contains the text response from the Agent.
@@ -54,12 +56,13 @@ async def chat_response_streamer(agent: Agent, message: str) -> AsyncGenerator:
         yield chunk.content
 
 
+# extend this schema to support the local files and URLs.
 class RunRequest(BaseModel):
     """Request model for an running an agent"""
 
     message: str
     stream: bool = True
-    model: Model = Model.gemini_20_flash_lite
+    model: Model = Model.gemini_20_flash_lite.value
     user_id: Optional[str] = None
     session_id: Optional[str] = None
 

@@ -1,0 +1,23 @@
+# Disable the git branch module
+[git_branch]
+disabled = true
+
+# Disable the package version module
+[package]
+disabled = true
+
+# Disable the python version module
+[python]
+disabled = true
+
+# You can add other configurations here if needed
+# For example, to keep the directory and character modules:
+[directory]
+# style = "blue" # Example customization
+
+[character]
+# success_symbol = "[➜](bold green)" # Example customization
+# error_symbol = "[✗](bold red)" # Example customization
+
+[vagrant]
+disabled = true

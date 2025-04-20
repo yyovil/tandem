@@ -43,7 +43,10 @@ func CreateSSEClient(endpoint string) {
 	if err != nil {
 		log.Println("Couldn't send a HTTP POST req: ", err.Error())
 	}
-	defer res.Body.Close()
+
+	if res != nil {
+		defer res.Body.Close()
+	}
 
 	scanner := bufio.NewScanner(req.Body)
 	// read until io.EOF is raised.

@@ -1,3 +1,4 @@
+
 {
   "go.goroot": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/share/go",
   "go.gopath": "${workspaceFolder}/.go",
@@ -16,5 +17,6 @@
   },
   "editor.tabSize": 4,
   "nix.enableLanguageServer": true,
-  "nix.serverPath": "nil"
+  "nix.serverPath": "nil",
+  "ruff.path": ["/nix/store/fwfahpczwpwbfnls2w7hj4vi4aa557r7-ruff-0.11.5/bin/ruff"]
 }

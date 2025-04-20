@@ -2,3 +2,5 @@
 !.env.example
 .go
 .vagrant
+.ruff_cache
+.config

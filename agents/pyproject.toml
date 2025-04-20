@@ -107,7 +107,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["mypy", "pytest", "ruff", "types-requests", "types-beautifulsoup4"]
+dev = [
+    "mypy",
+ "pytest",
+ "types-requests",
+ "types-beautifulsoup4",
+]
 
 [build-system]
 requires = ["setuptools"]
