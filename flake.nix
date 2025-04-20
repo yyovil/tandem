@@ -18,6 +18,8 @@
             go
             gopls
             gotools
+            vagrant
+            starship
 
             # TODO:
             # better dev setup for go
@@ -32,7 +34,8 @@
             source agents/.venv/bin/activate
             source monorepo.sh
             source tui/.env
-            echo -e "\033[95mdevelopment env ready\033[0m"
+            eval "$(starship init bash)"
+
             # TODO:
             # include dockerd and docker start cmds.
             # include cmds to install the deps for both the projects.
