@@ -14,5 +14,7 @@
     "GOROOT": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/share/go",
     "GOENV": "${workspaceFolder}/.go/env/env"
   },
-  "editor.tabSize": 4
+  "editor.tabSize": 4,
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nil"
 }
