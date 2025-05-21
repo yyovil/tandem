@@ -4,3 +4,5 @@
 .vagrant
 .ruff_cache
 .config
+tui/debug.log
+result
