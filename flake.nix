@@ -35,7 +35,6 @@
             export GOBIN="$GOPATH/bin"
             source agents/.venv/bin/activate
             source monorepo.sh
-            source tui/.env
             eval "$(starship init bash)"
 
             # TODO:

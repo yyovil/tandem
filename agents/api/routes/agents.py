@@ -1,6 +1,5 @@
-from enum import Enum
 from typing import AsyncGenerator, List, Optional
-
+from utils.models import Model
 from agno.agent import Agent
 from agno.media import File
 from fastapi import APIRouter, HTTPException, status
@@ -17,14 +16,6 @@ from utils.log import logger
 agents_router = APIRouter(prefix="/agents", tags=["Agents"])
 
 
-class Model(str, Enum):
-    gpt_4o = "gpt-4o"
-    o3_mini = "o3-mini"
-    gemini_20_flash_lite = "gemini-2.0-flash-lite"
-    gemini_25_pro_preview_03_25 = "gemini-2.5-pro-preview-03-25"
-    gemini_25_flash_preview_04_17 = "gemini-2.5-flash-preview-04-17"
-
-
 @agents_router.get("", response_model=List[str])
 async def list_agents():
     """
@@ -36,7 +27,7 @@ async def list_agents():
     return get_available_agents()
 
 
-async def chat_response_streamer(agent: Agent, message: str) -> AsyncGenerator:
+async def chat_response_streamer(agent: Agent, message: str, attachments: Optional[List[File]]) -> AsyncGenerator:
     """
     Stream agent responses chunk by chunk.
 
@@ -47,8 +38,11 @@ async def chat_response_streamer(agent: Agent, message: str) -> AsyncGenerator:
     Yields:
         Text chunks from the agent response
     """
+    if attachments is not None:
+        run_response = await agent.arun(message, stream=True, files=attachments)
+    else:
+        run_response = await agent.arun(message, stream=True)
 
-    run_response = await agent.arun(message, stream=True)
     async for chunk in run_response:
         # chunk.content only contains the text response from the Agent.
         # For advanced use cases, we should yield the entire chunk
@@ -61,10 +55,11 @@ class RunRequest(BaseModel):
     """Request model for an running an agent"""
 
     message: str
-    stream: bool = True
-    model: Model = Model.gemini_20_flash_lite.value
+    stream: Optional[bool] = True
+    model: Model = Model.GEMINI_2_5_FLASH_PREVIEW_04_17
     user_id: Optional[str] = None
     session_id: Optional[str] = None
+    attachments: Optional[List[File]] = None
 
 
 @agents_router.post("/{agent_id}/runs", status_code=status.HTTP_200_OK)
@@ -93,11 +88,11 @@ async def run_agent(agent_id: AgentType, body: RunRequest):
 
     if body.stream:
         return StreamingResponse(
-            chat_response_streamer(agent, body.message),
+            chat_response_streamer(agent, body.message, body.attachments),
             media_type="text/event-stream",
         )
     else:
-        response = await agent.arun(body.message, stream=False)
+        response = await agent.arun(body.message, stream=False, files=body.attachments)
         # response.content only contains the text response from the Agent.
         # For advanced use cases, we should yield the entire response
         # that contains the tool calls and intermediate steps.

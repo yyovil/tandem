@@ -1,13 +1,12 @@
 from enum import Enum
 from typing import List, Optional
-
-from agents.sage import get_sage
-from agents.scholar import get_scholar
+from agents.reconnoiter import get_reconnoiter
+from utils.models import Model
 
 
 class AgentType(Enum):
-    SAGE = "sage"
-    SCHOLAR = "scholar"
+    RECONNOITER = "Mr. Burnham"
+
 
 def get_available_agents() -> List[str]:
     """Returns a list of all available agent IDs."""
@@ -15,13 +14,19 @@ def get_available_agents() -> List[str]:
 
 
 def get_agent(
-    model_id: str = "gemini-2.0-flash-lite",
+    model_id: str = Model.GEMINI_2_5_FLASH_PREVIEW_04_17.value,
     agent_id: Optional[AgentType] = None,
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
     debug_mode: bool = True,
 ):
-    if agent_id == AgentType.SAGE:
-        return get_sage(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)
-    else:
-        return get_scholar(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)
+    match agent_id:
+        case AgentType.RECONNOITER:
+            return get_reconnoiter(
+                model_id=model_id,
+                user_id=user_id,
+                session_id=session_id,
+                debug_mode=debug_mode,
+            )
+        case _:
+            raise Exception(f"Agent {agent_id} is not available.")
