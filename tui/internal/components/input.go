@@ -1,16 +1,33 @@
 package components
 
 import (
+	"bufio"
+	"log"
 	"strings"
+
+	"net/http"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	vp "github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/yyovil/tui/internal/components/messages"
+	"github.com/yyovil/tui/internal/utils"
+)
+
+type Status string
+
+const (
+	Streaming  Status = "streaming"
+	Requesting Status = "requesting"
+	Idle       Status = "idle"
 )
 
 type Input struct {
+	//TODO: create a status indicator above the input cmp.
+	status Status
+
 	width, height int
 	userPrompt    string
 	textarea      textarea.Model
@@ -18,8 +35,7 @@ type Input struct {
 	// TODO: out this and put in a dedicated layout file.
 	leftpane, rightpane vp.Model
 
-	// Add a slice to store user messages for the left pane
-	leftPaneMessages []UserMessage
+	leftPaneMessages []any //TODO: this out, use a better type
 }
 
 type InputKeyMap struct {
@@ -42,7 +58,7 @@ var inputKeyMap = InputKeyMap{
 }
 
 func (i *Input) Init() tea.Cmd {
-	i.textarea.Placeholder = "Type your message here..."
+	i.textarea.Placeholder = "Assign tasks to AI Agents here..."
 	i.textarea.Focus()
 	i.textarea.ShowLineNumbers = false
 	return textarea.Blink
@@ -60,6 +76,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 			i.FilePicker.showFilePicker = true
 		case key.Matches(msg, inputKeyMap.Send):
+			// TODO: only send the message if the i.status == Idle
 			if !i.FilePicker.showFilePicker {
 
 				if i.textarea.Value() == "" {
@@ -69,7 +86,8 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				i.userPrompt = i.textarea.Value()
 				attachmentName := i.FilePicker.filepicker.FileSelected
 				// Send a command to add the user message
-				cmds = append(cmds, AddUserMsgCmd(i.userPrompt, attachmentName))
+				cmds = append(cmds, messages.AddUserMessageCmd(i.userPrompt, attachmentName), sendRunRequestCmd(i.userPrompt))
+
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
 				i.FilePicker.filepicker.FileSelected = ""
@@ -111,19 +129,54 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		i.rightpane, cmd = i.rightpane.Update(msg)
 		cmds = append(cmds, cmd)
 
-	case UserMsgAddedMsg:
-		i.leftPaneMessages = append(i.leftPaneMessages, msg.UserMsg)
+	case messages.UserMessageAddedMsg:
+		i.leftPaneMessages = append(i.leftPaneMessages, msg.UserMessage)
+
 		// Build the left pane content from all messages
 		var leftContent strings.Builder
-		for _, umsg := range i.leftPaneMessages {
-			umsg.width = i.leftpane.Width
-			umsg.height = i.leftpane.Height
+		for _, um := range i.leftPaneMessages {
+			umsg, ok := um.(messages.UserMessage)
+			if ok {
 
-			
-			leftContent.WriteString(umsg.View())
-			leftContent.WriteString("\n\n")
+				umsg.Width = i.leftpane.Width
+				umsg.Height = i.leftpane.Height
+
+				leftContent.WriteString(umsg.View())
+				leftContent.WriteString("\n\n")
+			}
 		}
+
 		i.leftpane.SetContent(leftContent.String())
+	case messages.AgentMessageAddedMsg:
+		i.status = Streaming
+		agentMessage := messages.AgentMessage{
+			StreamChan: msg.StreamChan,
+			Content:    "",
+		}
+
+		i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
+
+		var agentResponse strings.Builder
+
+		for _, um := range i.leftPaneMessages {
+			amsg, ok := um.(messages.AgentMessage)
+			if ok {
+				amsg.Width = i.leftpane.Width
+				amsg.Height = i.leftpane.Height
+
+				agentResponse.WriteString(amsg.View())
+				agentResponse.WriteString("\n\n")
+			}
+		}
+
+		log.Println("agent response: ", agentResponse.String())
+		i.leftpane.SetContent(agentResponse.String())
+		agentMessage.Update(msg)
+
+	case messages.EndStream:
+		i.status = Idle
+		return i, nil
+
 	}
 
 	_, cmd = i.FilePicker.Update(msg)
@@ -201,15 +254,82 @@ func (i Input) footerView() string {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
 		s.WriteString("Attachment: " + i.FilePicker.filepicker.Styles.Selected.Render(i.FilePicker.filepicker.FileSelected))
 	}
+
+	// TODO: status should appear to the far right.
+	statusStyle := lipgloss.
+		NewStyle().
+		AlignHorizontal(lipgloss.Right)
+	s.WriteString(statusStyle.Render(string(i.status)))
+
 	return footerStyle.Render(s.String())
 }
 
 func NewInput() Input {
 	return Input{
-		userPrompt: "",
-		textarea:   textarea.New(),
-		FilePicker: NewFilePicker(),
-		leftpane:   vp.New(0, 0),
-		rightpane:  vp.New(0, 0),
+		status:           Idle,
+		leftPaneMessages: []any{},
+		width:            0,
+		height:           0,
+		userPrompt:       "",
+		textarea:         textarea.New(),
+		FilePicker:       NewFilePicker(),
+		leftpane:         vp.New(0, 0),
+		rightpane:        vp.New(0, 0),
 	}
 }
+
+// requests the agent api for the agent message.
+func sendRunRequestCmd(Prompt string) tea.Cmd {
+
+	req, err := utils.Post(Prompt)
+	if err != nil {
+		return func() tea.Msg {
+			return nil
+		}
+	}
+
+	return func() tea.Msg {
+		// channel to stream the text chunks.
+		stream := make(chan tea.Msg)
+
+		go func() {
+			defer close(stream)
+			client := &http.Client{}
+			resp, err := client.Do(req)
+
+			if err != nil {
+				log.Println("error sending request:", err.Error())
+			}
+			
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				log.Println("error: received non-200 response:", resp.Status)
+				// TODO: show a user feedback for this error
+			}
+
+			scanner := bufio.NewScanner(resp.Body)
+
+			for scanner.Scan() {
+				chunk := scanner.Text()
+				stream <- messages.ConcatenateChunkMsg(chunk)
+				log.Println("streaming chunk: ", chunk)
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.Println("error reading response body:", err.Error())
+				return
+			}
+			log.Println("ending stream")
+
+			stream <- messages.EndStream{}
+		}()
+
+		return messages.AgentMessageAddedMsg{
+			StreamChan: stream,
+		}
+	}
+}
+
+/*
+TODO: we don't really need 2 seperate UserMessageAddedMsg and AgentMessageAddedMsg msgs to update the leftpane viewport. Use a generic one instead.
+*/

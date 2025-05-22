@@ -5,7 +5,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	components "github.com/yyovil/tandem-tui/internal/components"
+	components "github.com/yyovil/tui/internal/components"
 )
 
 func main() {
