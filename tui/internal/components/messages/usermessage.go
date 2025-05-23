@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/yyovil/tui/internal/utils"
 )
 
 type UserMessage struct {
@@ -16,7 +17,6 @@ type UserMessage struct {
 type UserMessageAddedMsg struct {
 	UserMessage UserMessage
 }
-
 
 func (m *UserMessage) Init() tea.Cmd {
 	return nil
@@ -38,12 +38,12 @@ func (m *UserMessage) View() string {
 	attachmentStyle := lipgloss.NewStyle().Faint(true)
 
 	var content string
-	breakpoints := " ,-"
+
 	if m.attachmentName != "" {
-		attachmentNameWrapped := ansi.Wordwrap(m.attachmentName, m.Width, breakpoints)
-		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-1, breakpoints)
+		attachmentNameWrapped := ansi.Wordwrap(m.attachmentName, m.Width, utils.Breakpoints)
+		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-1, utils.Breakpoints)
 	} else {
-		content = ansi.Wordwrap(m.prompt, m.Width, breakpoints)
+		content = ansi.Wordwrap(m.prompt, m.Width, utils.Breakpoints)
 	}
 
 	return userMessageStyle.Render(content)

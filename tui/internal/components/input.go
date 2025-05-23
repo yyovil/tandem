@@ -19,15 +19,15 @@ import (
 type Status string
 
 const (
-	Streaming  Status = "streaming"
-	Requesting Status = "requesting"
-	Idle       Status = "idle"
+	Streaming  Status = "Streaming"
+	Requesting Status = "Requesting"
+	Idle       Status = "Idle"
 )
 
 type Input struct {
 	//TODO: create a status indicator above the input cmp.
-	status Status
-
+	status        Status
+	stream        chan tea.Msg
 	width, height int
 	userPrompt    string
 	textarea      textarea.Model
@@ -35,7 +35,7 @@ type Input struct {
 	// TODO: out this and put in a dedicated layout file.
 	leftpane, rightpane vp.Model
 
-	leftPaneMessages []any //TODO: this out, use a better type
+	leftPaneMessages []tea.Msg //TODO: this out, use a better type
 }
 
 type InputKeyMap struct {
@@ -85,8 +85,8 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				i.userPrompt = i.textarea.Value()
 				attachmentName := i.FilePicker.filepicker.FileSelected
-				// Send a command to add the user message
-				cmds = append(cmds, messages.AddUserMessageCmd(i.userPrompt, attachmentName), sendRunRequestCmd(i.userPrompt))
+				i.status = Requesting
+				cmds = append(cmds, sendRunRequestCmd(i.userPrompt), messages.AddUserMessageCmd(i.userPrompt, attachmentName))
 
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
@@ -149,29 +149,27 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		i.leftpane.SetContent(leftContent.String())
 	case messages.AgentMessageAddedMsg:
 		i.status = Streaming
-		agentMessage := messages.AgentMessage{
-			StreamChan: msg.StreamChan,
-			Content:    "",
-		}
+		i.stream = msg.StreamChan
+		firstChunk, _ := <-msg.StreamChan
 
-		i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
-
-		var agentResponse strings.Builder
-
-		for _, um := range i.leftPaneMessages {
-			amsg, ok := um.(messages.AgentMessage)
-			if ok {
-				amsg.Width = i.leftpane.Width
-				amsg.Height = i.leftpane.Height
-
-				agentResponse.WriteString(amsg.View())
-				agentResponse.WriteString("\n\n")
+		if v, ok := firstChunk.(messages.ConcatenateChunkMsg); ok {
+			agentMessage := messages.AgentMessage{
+				StreamChan: i.stream,
+				Content:    string(v),
+				Width:      i.leftpane.Width,
 			}
+			i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
+			_, cmd := agentMessage.Update(v)
+			return i, cmd
 		}
 
-		log.Println("agent response: ", agentResponse.String())
-		i.leftpane.SetContent(agentResponse.String())
-		agentMessage.Update(msg)
+	// case messages.ConcatenateChunkMsg:
+	// 	i.status = Streaming
+	// 	lastAgentMessage := i.leftPaneMessages[len(i.leftPaneMessages)-1]
+	// 	if lastAgentMessage, ok := lastAgentMessage.(messages.AgentMessage); ok {
+	// 		_, cmd := lastAgentMessage.Update(msg)
+	// 		return i, cmd
+	// 	}
 
 	case messages.EndStream:
 		i.status = Idle
@@ -215,14 +213,25 @@ func (i *Input) View() string {
 	rightPaneStyle := lipgloss.NewStyle().
 		Width(((i.width * 30) / 100)).
 		//FIX: this is weird hack to get the width of rightpanel correct.
-		MaxWidth((i.width*30)/100+1).
-		Height(i.height-inputStyle.GetHeight()-10).
-		MaxHeight(i.height-inputStyle.GetHeight()).
-		Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
-		BorderLeftForeground(lipgloss.Color("#e2a3c7")).
+		MaxWidth((i.width*30)/100 + 1).
+		Height(i.height - inputStyle.GetHeight() - 10).
+		MaxHeight(i.height - inputStyle.GetHeight()).
+		// Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
+		// BorderLeftForeground(lipgloss.Color("#e2a3c7")).
 		// Background(lipgloss.Color("#e2a3c7")).
 		Padding(1)
 
+	content := ""
+	for _, msg := range i.leftPaneMessages {
+		switch m := msg.(type) {
+		case messages.AgentMessage:
+			content += m.View() + "\n\n"
+		case messages.UserMessage:
+			content += m.View() + "\n\n"
+		}
+	}
+
+	i.leftpane.SetContent(content)
 	panes := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		leftPaneStyle.Render(i.leftpane.View()),
@@ -237,13 +246,11 @@ func (i Input) footerView() string {
 	var s strings.Builder
 	footerStyle := lipgloss.
 		NewStyle().
-		Width(i.width-2).
-		MaxWidth(i.width).
 		Height(1).
+		Width(i.width-12).
 		MaxHeight(2).
 		Border(lipgloss.InnerHalfBlockBorder(), false).
 		BorderLeft(true).
-		BorderRight(true).
 		PaddingLeft(1).
 		Background(lipgloss.Color("#343a40")).
 		MarginBottom(1)
@@ -258,16 +265,20 @@ func (i Input) footerView() string {
 	// TODO: status should appear to the far right.
 	statusStyle := lipgloss.
 		NewStyle().
-		AlignHorizontal(lipgloss.Right)
-	s.WriteString(statusStyle.Render(string(i.status)))
+		Width(10).
+		Height(1).
+		Border(lipgloss.InnerHalfBlockBorder(), false).
+		BorderRight(true).
+		Background(lipgloss.Color("#fb5607")).
+		AlignHorizontal(lipgloss.Center)
 
-	return footerStyle.Render(s.String())
+	return lipgloss.JoinHorizontal(lipgloss.Left, footerStyle.Render(s.String()), statusStyle.Render(string(i.status)))
 }
 
 func NewInput() Input {
 	return Input{
 		status:           Idle,
-		leftPaneMessages: []any{},
+		leftPaneMessages: []tea.Msg{},
 		width:            0,
 		height:           0,
 		userPrompt:       "",
@@ -289,7 +300,6 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		// channel to stream the text chunks.
 		stream := make(chan tea.Msg)
 
 		go func() {
@@ -299,8 +309,10 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 
 			if err != nil {
 				log.Println("error sending request:", err.Error())
+				// TODO: show a user feedback for this error
+
 			}
-			
+
 			defer resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
 				log.Println("error: received non-200 response:", resp.Status)
@@ -308,20 +320,16 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 			}
 
 			scanner := bufio.NewScanner(resp.Body)
-
 			for scanner.Scan() {
 				chunk := scanner.Text()
-				stream <- messages.ConcatenateChunkMsg(chunk)
-				log.Println("streaming chunk: ", chunk)
+				if chunk != "" {
+					stream <- messages.ConcatenateChunkMsg(chunk)
+				}
 			}
-
 			if err := scanner.Err(); err != nil {
 				log.Println("error reading response body:", err.Error())
 				return
 			}
-			log.Println("ending stream")
-
-			stream <- messages.EndStream{}
 		}()
 
 		return messages.AgentMessageAddedMsg{
@@ -329,7 +337,3 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 		}
 	}
 }
-
-/*
-TODO: we don't really need 2 seperate UserMessageAddedMsg and AgentMessageAddedMsg msgs to update the leftpane viewport. Use a generic one instead.
-*/

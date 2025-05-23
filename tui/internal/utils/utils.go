@@ -57,3 +57,5 @@ func Post(Prompt string) (*http.Request, error) {
 /*
 TODO: we need a util that calculates the appropriate width of a cmp that when set| upon window resize, doesn't overflows the content inside of it.
 */
+
+var Breakpoints string = " ,-"
