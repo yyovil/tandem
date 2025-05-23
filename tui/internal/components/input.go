@@ -149,29 +149,33 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		i.leftpane.SetContent(leftContent.String())
 	case messages.AgentMessageAddedMsg:
 		i.status = Streaming
+
 		agentMessage := messages.AgentMessage{
 			StreamChan: msg.StreamChan,
 			Content:    "",
+			Width:      i.leftpane.Width,
 		}
 
 		i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
 
-		var agentResponse strings.Builder
+		var content strings.Builder
 
-		for _, um := range i.leftPaneMessages {
-			amsg, ok := um.(messages.AgentMessage)
-			if ok {
+		for _, m := range i.leftPaneMessages {
+			if umsg, ok := m.(messages.UserMessage); ok {
+				umsg.Width = i.leftpane.Width
+				umsg.Height = i.leftpane.Height
+				content.WriteString(umsg.View())
+				content.WriteString("\n\n")
+			} else if amsg, ok := m.(messages.AgentMessage); ok {
 				amsg.Width = i.leftpane.Width
-				amsg.Height = i.leftpane.Height
-
-				agentResponse.WriteString(amsg.View())
-				agentResponse.WriteString("\n\n")
+				content.WriteString(amsg.View())
+				content.WriteString("\n\n")
 			}
 		}
 
-		log.Println("agent response: ", agentResponse.String())
-		i.leftpane.SetContent(agentResponse.String())
-		agentMessage.Update(msg)
+		i.leftpane.SetContent(content.String())
+		_, cmd := agentMessage.Update(msg)
+		return i, tea.Batch(messages.ListenOnStreamChanCmd(agentMessage.StreamChan), cmd)
 
 	case messages.EndStream:
 		i.status = Idle
@@ -300,7 +304,7 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 			if err != nil {
 				log.Println("error sending request:", err.Error())
 			}
-			
+
 			defer resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
 				log.Println("error: received non-200 response:", resp.Status)
@@ -312,15 +316,12 @@ func sendRunRequestCmd(Prompt string) tea.Cmd {
 			for scanner.Scan() {
 				chunk := scanner.Text()
 				stream <- messages.ConcatenateChunkMsg(chunk)
-				log.Println("streaming chunk: ", chunk)
 			}
 
 			if err := scanner.Err(); err != nil {
 				log.Println("error reading response body:", err.Error())
 				return
 			}
-			log.Println("ending stream")
-
 			stream <- messages.EndStream{}
 		}()
 
