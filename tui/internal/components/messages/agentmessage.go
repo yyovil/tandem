@@ -5,9 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
-	glam "github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	// "github.com/yyovil/tui/internal/styles"
 	"github.com/yyovil/tui/internal/utils"
 )
 
@@ -26,12 +26,15 @@ func (m *AgentMessage) Init() tea.Cmd {
 }
 
 func (m *AgentMessage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// take care of the concatenation msg here.
-	if msg, ok := msg.(ConcatenateChunkMsg); ok {
+	switch msg := msg.(type) {
+	case ConcatenateChunkMsg:
 		m.Content += string(msg)
-		log.Println("\n\nagentMessage content: ", m.Content)
+		log.Printf("ConcatenateChunk: %s\n", msg)
 		return m, ListenOnStreamChanCmd(m.StreamChan)
+	case EndStream:
+		log.Println("agentmessage: ending the stream.")
 	}
+
 	return m, nil
 }
 
@@ -39,40 +42,30 @@ func (m *AgentMessage) View() string {
 	agentMessageStyle := lipgloss.
 		NewStyle().
 		MaxWidth(m.Width).
-		Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
-		BorderForeground(lipgloss.Color("#e2a3c7")).
-		Padding(0, 1)
+		Border(lipgloss.InnerHalfBlockBorder(), false).
+		BorderLeft(true).
+		Background(lipgloss.Color("#cdb4db")).
+		BorderForeground(lipgloss.Color("#cdb4db"))
 
-	renderer, err := glam.NewTermRenderer(glamour.WithWordWrap(m.Width-1))
+	glammedResponse, err := glamour.Render(m.Content, "dark")
 	if err != nil {
-		log.Println("Error rendering response: ", err)
+		log.Println("Error rendering response:", err)
 		// TODO: provide a user feedback for this error
 		return agentMessageStyle.Render(ansi.Wordwrap(m.Content, m.Width, utils.Breakpoints))
 	}
-	content, err := renderer.Render(m.Content)
-	if err != nil {
-		log.Println("error while rendering: ", err)
-	}
 
-	return agentMessageStyle.Render(content)
+	return glammedResponse
 }
 
-// give this cmd when we have to concatenate a new chunk to the last agent message.
 type ConcatenateChunkMsg string
 type EndStream struct{}
 
-func NewAgentMessage(completion string) AgentMessage {
-	return AgentMessage{
-		Content: completion,
-	}
-}
-
-func ListenOnStreamChanCmd(streamChan <-chan tea.Msg) tea.Cmd {
+func ListenOnStreamChanCmd(streamChan chan tea.Msg) tea.Cmd {
 	return func() tea.Msg {
-		if msg, ok := <-streamChan; ok {
-			return msg
-		} else {
+		msg, ok := <-streamChan
+		if !ok {
 			return EndStream{}
 		}
+		return msg
 	}
 }

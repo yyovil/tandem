@@ -2,10 +2,10 @@ package components
 
 import (
 	"bufio"
+	"fmt"
 	"log"
-	"strings"
-
 	"net/http"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -25,21 +25,24 @@ const (
 )
 
 type Input struct {
-	//TODO: create a status indicator above the input cmp.
 	status        Status
-	stream        chan tea.Msg
 	width, height int
 	userPrompt    string
 	textarea      textarea.Model
 	FilePicker    FilePicker
 	// TODO: out this and put in a dedicated layout file.
 	leftpane, rightpane vp.Model
-
-	leftPaneMessages []tea.Msg //TODO: this out, use a better type
+	leftPaneMessages    []tea.Msg //TODO: this out, use a better type
 }
 
 type InputKeyMap struct {
-	ShowFilePicker, Send, Quit key.Binding
+	ShowFilePicker,
+	Send,
+	Quit,
+	PageDown,
+	PageUp,
+	HalfPageUp,
+	HalfPageDown key.Binding
 }
 
 var inputKeyMap = InputKeyMap{
@@ -54,6 +57,22 @@ var inputKeyMap = InputKeyMap{
 	Quit: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "quit"),
+	),
+	PageDown: key.NewBinding(
+		key.WithKeys("pgdown"),
+		key.WithHelp("f/pgdn", "page down"),
+	),
+	PageUp: key.NewBinding(
+		key.WithKeys("pgup"),
+		key.WithHelp("b/pgupf", "page up"),
+	),
+	HalfPageUp: key.NewBinding(
+		key.WithKeys("up"),
+		key.WithHelp("up", "½ page up"),
+	),
+	HalfPageDown: key.NewBinding(
+		key.WithKeys("down"),
+		key.WithHelp("down", "½ page down"),
 	),
 }
 
@@ -71,26 +90,33 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
+		case key.Matches(msg, inputKeyMap.PageUp),
+			key.Matches(msg, inputKeyMap.HalfPageUp),
+			key.Matches(msg, inputKeyMap.PageDown),
+			key.Matches(msg, inputKeyMap.HalfPageDown):
+			break
+
 		case key.Matches(msg, inputKeyMap.ShowFilePicker):
 			cmd = i.FilePicker.Init()
 			cmds = append(cmds, cmd)
 			i.FilePicker.showFilePicker = true
 		case key.Matches(msg, inputKeyMap.Send):
-			// TODO: only send the message if the i.status == Idle
 			if !i.FilePicker.showFilePicker {
 
-				if i.textarea.Value() == "" {
+				if i.textarea.Value() == "" || i.status != Idle {
 					return i, nil
 				}
 
 				i.userPrompt = i.textarea.Value()
 				attachmentName := i.FilePicker.filepicker.FileSelected
 				i.status = Requesting
-				cmds = append(cmds, sendRunRequestCmd(i.userPrompt), messages.AddUserMessageCmd(i.userPrompt, attachmentName))
+
+				cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, attachmentName))
 
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
 				i.FilePicker.filepicker.FileSelected = ""
+
 				return i, tea.Batch(cmds...)
 			}
 
@@ -102,9 +128,13 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !i.FilePicker.showFilePicker {
 				return i, tea.Quit
 			}
+
 		default:
 			cmd = i.textarea.Focus()
 			cmds = append(cmds, cmd)
+			i.textarea, cmd = i.textarea.Update(msg)
+			cmds = append(cmds, cmd)
+			return i, tea.Batch(cmds...)
 		}
 	case tea.WindowSizeMsg:
 		i.textarea.SetWidth(msg.Width - 2)
@@ -121,66 +151,58 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		i.leftpane.Width = leftPaneWidth
 		i.leftpane.Height = paneHeight
-		i.leftpane, cmd = i.leftpane.Update(msg)
-		cmds = append(cmds, cmd)
 
 		i.rightpane.Width = rightPaneWidth
 		i.rightpane.Height = paneHeight
-		i.rightpane, cmd = i.rightpane.Update(msg)
-		cmds = append(cmds, cmd)
 
 	case messages.UserMessageAddedMsg:
+		msg.UserMessage.Width = i.leftpane.Width
 		i.leftPaneMessages = append(i.leftPaneMessages, msg.UserMessage)
 
-		// Build the left pane content from all messages
-		var leftContent strings.Builder
-		for _, um := range i.leftPaneMessages {
-			umsg, ok := um.(messages.UserMessage)
-			if ok {
-
-				umsg.Width = i.leftpane.Width
-				umsg.Height = i.leftpane.Height
-
-				leftContent.WriteString(umsg.View())
-				leftContent.WriteString("\n\n")
-			}
-		}
-
-		i.leftpane.SetContent(leftContent.String())
 	case messages.AgentMessageAddedMsg:
 		i.status = Streaming
-		i.stream = msg.StreamChan
+		// blocking call to receive the first chunk of the stream
+		agentMessage := messages.AgentMessage{
+			StreamChan: msg.StreamChan,
+			Width:      i.leftpane.Width,
+		}
 		firstChunk, _ := <-msg.StreamChan
-
 		if v, ok := firstChunk.(messages.ConcatenateChunkMsg); ok {
-			agentMessage := messages.AgentMessage{
-				StreamChan: i.stream,
-				Content:    string(v),
-				Width:      i.leftpane.Width,
-			}
+			agentMessage.Content = string(v)
 			i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
-			_, cmd := agentMessage.Update(v)
-			return i, cmd
+			i.leftpane.GotoBottom()
+
+			return i, messages.ListenOnStreamChanCmd(msg.StreamChan)
 		}
 
-	// case messages.ConcatenateChunkMsg:
-	// 	i.status = Streaming
-	// 	lastAgentMessage := i.leftPaneMessages[len(i.leftPaneMessages)-1]
-	// 	if lastAgentMessage, ok := lastAgentMessage.(messages.AgentMessage); ok {
-	// 		_, cmd := lastAgentMessage.Update(msg)
-	// 		return i, cmd
-	// 	}
+	case messages.ConcatenateChunkMsg:
+		i.status = Streaming
+		// Update the last message in place instead of appending a new one
+		if len(i.leftPaneMessages) > 0 {
+			lastMsgIndex := len(i.leftPaneMessages) - 1
+			lastMsg := i.leftPaneMessages[lastMsgIndex]
+
+			if agentMsg, ok := lastMsg.(messages.AgentMessage); ok {
+				agentMsg.Content += string(msg)
+				i.leftPaneMessages[lastMsgIndex] = agentMsg
+				i.leftpane.GotoBottom()
+
+				return i, messages.ListenOnStreamChanCmd(agentMsg.StreamChan)
+			}
+		}
 
 	case messages.EndStream:
 		i.status = Idle
 		return i, nil
-
 	}
 
+	i.leftpane, cmd = i.leftpane.Update(msg)
+	cmds = append(cmds, cmd)
 	_, cmd = i.FilePicker.Update(msg)
 	cmds = append(cmds, cmd)
-
 	i.textarea, cmd = i.textarea.Update(msg)
+	cmds = append(cmds, cmd)
+	i.rightpane, cmd = i.rightpane.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return i, tea.Batch(cmds...)
@@ -213,13 +235,13 @@ func (i *Input) View() string {
 	rightPaneStyle := lipgloss.NewStyle().
 		Width(((i.width * 30) / 100)).
 		//FIX: this is weird hack to get the width of rightpanel correct.
-		MaxWidth((i.width*30)/100 + 1).
-		Height(i.height - inputStyle.GetHeight() - 10).
-		MaxHeight(i.height - inputStyle.GetHeight()).
+		MaxWidth((i.width*30)/100+1).
+		Height(i.height-inputStyle.GetHeight()-10).
+		MaxHeight(i.height-inputStyle.GetHeight()).
 		// Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
 		// BorderLeftForeground(lipgloss.Color("#e2a3c7")).
 		// Background(lipgloss.Color("#e2a3c7")).
-		Padding(1)
+		Padding(1, 0)
 
 	content := ""
 	for _, msg := range i.leftPaneMessages {
@@ -232,6 +254,7 @@ func (i *Input) View() string {
 	}
 
 	i.leftpane.SetContent(content)
+
 	panes := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		leftPaneStyle.Render(i.leftpane.View()),
@@ -241,7 +264,6 @@ func (i *Input) View() string {
 	return lipgloss.JoinVertical(lipgloss.Top, panes, inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
 }
 
-// displays the attachment selected.
 func (i Input) footerView() string {
 	var s strings.Builder
 	footerStyle := lipgloss.
@@ -255,14 +277,18 @@ func (i Input) footerView() string {
 		Background(lipgloss.Color("#343a40")).
 		MarginBottom(1)
 
-	if i.FilePicker.filepicker.FileSelected == "" {
+	fpSelectedStyle := i.FilePicker.filepicker.Styles.Selected
+	selectedFiles := i.FilePicker.selectedFiles
+	if len(selectedFiles) == 0 {
 		s.WriteString("No Attachments")
+	} else if len(selectedFiles) == 1 {
+		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
+		s.WriteString("Selected file: " + fpSelectedStyle.Render(selectedFiles[0]))
 	} else {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
-		s.WriteString("Attachment: " + i.FilePicker.filepicker.Styles.Selected.Render(i.FilePicker.filepicker.FileSelected))
+		s.WriteString("Total Attachments: " + fpSelectedStyle.Render(fmt.Sprintf("%d", len(selectedFiles))))
 	}
 
-	// TODO: status should appear to the far right.
 	statusStyle := lipgloss.
 		NewStyle().
 		Width(10).
@@ -289,46 +315,55 @@ func NewInput() Input {
 	}
 }
 
-// requests the agent api for the agent message.
-func sendRunRequestCmd(Prompt string) tea.Cmd {
-
-	req, err := utils.Post(Prompt)
-	if err != nil {
-		return func() tea.Msg {
-			return nil
-		}
-	}
-
+func (i Input) sendRunRequestCmd() tea.Cmd {
 	return func() tea.Msg {
+		attachment, err := i.FilePicker.GetSelectedFile()
+		if err != nil {
+			i.status = Idle
+			log.Println("error getting the attachment:", err.Error())
+			return func() tea.Msg {
+				return nil
+			}
+		}
+
+		req, err := utils.GetPostRequest(i.userPrompt, attachment)
+		if err != nil {
+			i.status = Idle
+			log.Println("error creating request:", err.Error())
+			return func() tea.Msg {
+				return nil
+			}
+		}
+
 		stream := make(chan tea.Msg)
 
 		go func() {
 			defer close(stream)
+
 			client := &http.Client{}
 			resp, err := client.Do(req)
-
 			if err != nil {
+				i.status = Idle
 				log.Println("error sending request:", err.Error())
 				// TODO: show a user feedback for this error
-
+				return
 			}
-
 			defer resp.Body.Close()
+
 			if resp.StatusCode != http.StatusOK {
+				i.status = Idle
 				log.Println("error: received non-200 response:", resp.Status)
 				// TODO: show a user feedback for this error
+				return
 			}
 
 			scanner := bufio.NewScanner(resp.Body)
+			scanner.Split(bufio.ScanRunes)
 			for scanner.Scan() {
 				chunk := scanner.Text()
 				if chunk != "" {
 					stream <- messages.ConcatenateChunkMsg(chunk)
 				}
-			}
-			if err := scanner.Err(); err != nil {
-				log.Println("error reading response body:", err.Error())
-				return
 			}
 		}()
 

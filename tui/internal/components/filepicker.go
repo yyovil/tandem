@@ -1,8 +1,8 @@
 package components
 
 import (
-	"errors"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -11,12 +11,8 @@ import (
 	vp "github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/yyovil/tui/internal/utils"
 )
-
-type Attachment struct {
-	Name    string
-	Content []byte
-}
 
 type FilePicker struct {
 	showFilePicker bool
@@ -24,6 +20,7 @@ type FilePicker struct {
 	filepicker     fp.Model
 	width          int
 	height         int
+	selectedFiles  []string //slice storing the path for the selected files.
 }
 
 type FilePickerKeyMap struct {
@@ -94,8 +91,11 @@ func (fpc *FilePicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				log.Println("Error getting file stat", err.Error())
 				// TODO: show status to user.
 			} else if fileStat.IsDir() {
-				fpc.viewport.SetYOffset(0)
+				// this is to set the scroll position to top when you select a dir.
+				fpc.viewport.GotoTop()
 				fpc.viewport.Update(msg)
+			} else {
+				fpc.selectedFiles = append(fpc.selectedFiles, fpc.filepicker.FileSelected)
 			}
 		}
 	}
@@ -116,7 +116,6 @@ func (fpc *FilePicker) View() string {
 	s.WriteString(fpc.filepicker.View())
 	fpc.viewport.SetContent(s.String())
 	fpc.viewport.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
-
 	return lipgloss.Place(fpc.width, fpc.height, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Left, fpc.viewport.View(), fpc.footerView()))
 }
 
@@ -133,55 +132,68 @@ func (fpc FilePicker) footerView() string {
 		Border(lipgloss.InnerHalfBlockBorder(), false, true).
 		Background(lipgloss.Color("#343a40"))
 
-	if fpc.filepicker.FileSelected == "" {
+	if len(fpc.selectedFiles) == 0 {
 		s.WriteString("Pick a file\n\n")
+	} else if len(fpc.selectedFiles) == 1 {
+		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
+		s.WriteString("Selected file: " + fpc.filepicker.Styles.Selected.Render(fpc.selectedFiles[0]) + "\n")
 	} else {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
-		s.WriteString("Selected file: " + fpc.filepicker.Styles.Selected.Render(fpc.filepicker.FileSelected) + "\n")
-
+		for idx, selectedFile := range fpc.selectedFiles {
+			s.WriteString(fpc.filepicker.Styles.Selected.Render(selectedFile))
+			if idx < len(fpc.selectedFiles)-1 {
+				s.WriteString(", ")
+			} else {
+				s.WriteString("\n")
+			}
+		}
 	}
+
 	return footerStyle.Render(s.String())
 }
 
-func (fpc FilePicker) GetSelectedFile() (Attachment, error) {
+func (fpc FilePicker) GetSelectedFile() (utils.Attachment, error) {
 	fs := fpc.filepicker.FileSelected
 	if fs != "" {
-		fileStat, err := os.Stat(fs)
-		if err != nil {
-			return Attachment{
-				Name:    fs,
-				Content: []byte{},
-			}, err
-		}
+		// fileStat, err := os.Stat(fs)
 
-		if fileStat.IsDir() {
-			// FEATURE: in future we would like to support uploading multiple files at 1 level depth by selecting a dir.
-			return Attachment{
-				Name:    fs,
-				Content: []byte{},
-			}, errors.New("can't get the selected dir")
-		}
+		// if err != nil {
+		// 	return utils.Attachment{
+		// 		Filepath: fpc.filepicker.FileSelected,
+		// 		Content:  []byte{},
+		// 	}, err
+		// }
+
+		// if fileStat.IsDir() {
+		// FEATURE: in future we would like to support uploading multiple files at 1 level depth by selecting a dir.
+		// return utils.Attachment{
+
+		// 		Content: []byte{},
+		// 	}, errors.New("can't get the selected dir")
+		// }
 
 		content, err := os.ReadFile(fs)
-
 		if err != nil {
 			log.Println("error reading file:", err.Error())
-			return Attachment{
-				Name:    fs,
-				Content: []byte{},
+			return utils.Attachment{
+				Filepath: "",
+				Url:      "",
+				Content:  "",
 			}, err
 		}
 
-		return Attachment{
-			Name:    fpc.filepicker.FileSelected,
-			Content: content,
+		return utils.Attachment{
+			Filepath: fpc.filepicker.FileSelected,
+			Url:      "",
+			MimeType: strings.Split(http.DetectContentType(content), ";")[0],
+			Content:  string(content),
 		}, nil
 
 	} else {
-		return Attachment{
-			Name:    fs,
-			Content: []byte{},
-		}, errors.New("can't get a file if not selected")
+		return utils.Attachment{
+			Filepath: "",
+			Content:  "",
+		}, nil
 	}
 }
 
@@ -192,31 +204,8 @@ func NewFilePicker() FilePicker {
 	}
 }
 
-// TODO: this cmd should trigger showing the file picker component.
-func AttachCmd(i Input) tea.Cmd {
-	attachment, err := i.FilePicker.GetSelectedFile()
-	var attachmentMsg AttachmentMsg
-	if err != nil {
-		// TODO: find better handling of error.
-		log.Println("error getting selected file:", err.Error())
-		attachmentMsg = AttachmentMsg{
-			Attachment: Attachment{
-				attachment.Name,
-				attachment.Content,
-			},
-		}
-	} else {
-		attachmentMsg = AttachmentMsg{
-			Attachment: attachment,
-		}
-	}
-	return func() tea.Msg {
-		return attachmentMsg
-	}
-}
-
 type AttachmentMsg struct {
-	Attachment Attachment
+	Attachment utils.Attachment
 }
 
 /*

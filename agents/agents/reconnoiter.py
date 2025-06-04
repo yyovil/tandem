@@ -50,6 +50,7 @@ def get_reconnoiter(
         markdown=True,
         add_datetime_to_instructions=True,
         add_history_to_messages=True,
+        add_name_to_instructions=True,
         stream=True,
         show_tool_calls=True,
         debug_mode=debug_mode,

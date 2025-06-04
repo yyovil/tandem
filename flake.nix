@@ -1,4 +1,3 @@
-# nixos guys ain't gotta do nothing. yall good. rest of them are just on their own for now.
 {
   description = "flake to setup the dev env required for Tandem";
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -6,11 +5,15 @@
     { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
     in
     {
       devShells.${system}.default =
         with pkgs;
+
         mkShell {
           buildInputs = [
             python311
@@ -23,10 +26,10 @@
             starship
 
             # TODO:
-            # better dev setup for go
             # docker_25
-            # docker is going to need a little config to work as expected. need to include in some specific group
+            # vbox provider.
           ];
+
           shellHook = ''
             export STARSHIP_CONFIG=$PWD/.config/starship.toml
             export GOROOT="${pkgs.go}/share/go"
@@ -39,7 +42,8 @@
 
             # TODO:
             # include dockerd and docker start cmds.
-            # include cmds to install the deps for both the projects.
+            # build the kali image and load it into docker.
+            # install the project level deps.
           '';
         };
     };

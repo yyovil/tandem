@@ -39,6 +39,17 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
         Text chunks from the agent response
     """
     if attachments is not None:
+        attachments = list(
+            map(
+                lambda attachment: File(
+                    url=attachment.url or None,
+                    content=attachment.content or None,
+                    mime_type=attachment.mime_type or "text/plain",
+                    filepath=attachment.filepath or None,
+                ),
+                attachments,
+            )
+        )
         run_response = await agent.arun(message, stream=True, files=attachments)
     else:
         run_response = await agent.arun(message, stream=True)
@@ -56,7 +67,7 @@ class RunRequest(BaseModel):
 
     message: str
     stream: Optional[bool] = True
-    model: Model = Model.GEMINI_2_5_FLASH_PREVIEW_04_17
+    model_id: Model = Model.GEMINI_2_5_FLASH_PREVIEW_04_17.value
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     attachments: Optional[List[File]] = None
@@ -78,7 +89,7 @@ async def run_agent(agent_id: AgentType, body: RunRequest):
 
     try:
         agent: Agent = get_agent(
-            model_id=body.model.value,
+            model_id=body.model_id,
             agent_id=agent_id,
             user_id=body.user_id,
             session_id=body.session_id,
@@ -93,6 +104,12 @@ async def run_agent(agent_id: AgentType, body: RunRequest):
         )
     else:
         response = await agent.arun(body.message, stream=False, files=body.attachments)
+        # response.content only contains the text response from the Agent.
+        # For advanced use cases, we should yield the entire response
+        # that contains the tool calls and intermediate steps.
+        # response.content only contains the text response from the Agent.
+        # For advanced use cases, we should yield the entire response
+        # that contains the tool calls and intermediate steps.
         # response.content only contains the text response from the Agent.
         # For advanced use cases, we should yield the entire response
         # that contains the tool calls and intermediate steps.

@@ -27,8 +27,9 @@
         "develop"
       ],
       "icon": "terminal-linux",
-      "color": "terminal.ansiMagenta"
+      "color": "terminal.ansiMagenta",
     }
   },
   "terminal.integrated.defaultProfile.linux": "nix-develop",
+  "terminal.integrated.cwd": "${workspaceFolder}",
 }

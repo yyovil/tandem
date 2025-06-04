@@ -32,7 +32,7 @@ func (m *UserMessage) View() string {
 		Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
 		MaxWidth(m.Width).
 		// Background(lipgloss.Color("#2c3e50")).
-		BorderForeground(lipgloss.Color("#d67ab1")).
+		BorderForeground(lipgloss.Color("#ffafcc")).
 		Padding(0, 1)
 
 	attachmentStyle := lipgloss.NewStyle().Faint(true)
@@ -41,15 +41,14 @@ func (m *UserMessage) View() string {
 
 	if m.attachmentName != "" {
 		attachmentNameWrapped := ansi.Wordwrap(m.attachmentName, m.Width, utils.Breakpoints)
-		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-1, utils.Breakpoints)
+		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-2, utils.Breakpoints)
 	} else {
-		content = ansi.Wordwrap(m.prompt, m.Width, utils.Breakpoints)
+		content = ansi.Wordwrap(m.prompt, m.Width-2, utils.Breakpoints)
 	}
 
 	return userMessageStyle.Render(content)
 }
 
-// AddUserMessageCmd returns a tea.Cmd that sends a UserMsgAddedMsg with the given prompt and attachmentName.
 func AddUserMessageCmd(prompt string, attachmentName string) tea.Cmd {
 	return func() tea.Msg {
 		return UserMessageAddedMsg{
