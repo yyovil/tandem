@@ -27,7 +27,9 @@ def get_reconnoiter(
         description=dedent(
             """You are an OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance."""
         ),
-        goal=dedent("""Your goal is to assist the user during the reconnaissance phase of a pentest."""),
+        goal=dedent(
+            """Your goal is to assist the user during the reconnaissance phase of a pentest and finish the tasks assigned."""
+        ),
         instructions=[
             "Be concise and clear.",
             "Use kali linux cli tools for reconnaissance.",
@@ -47,12 +49,12 @@ def get_reconnoiter(
                 enable_volume_management=True,
             )
         ],
+        show_tool_calls=True,
         markdown=True,
         add_datetime_to_instructions=True,
         add_history_to_messages=True,
         add_name_to_instructions=True,
         stream=True,
-        show_tool_calls=True,
         debug_mode=debug_mode,
         read_chat_history=True,
         additional_context=additional_context,

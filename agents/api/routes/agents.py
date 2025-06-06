@@ -1,5 +1,6 @@
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List, Optional, AsyncIterator
 from utils.models import Model
+from agno.run.response import RunResponse
 from agno.agent import Agent
 from agno.media import File
 from fastapi import APIRouter, HTTPException, status
@@ -34,10 +35,12 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
     Args:
         agent: The agent instance to interact with
         message: User message to process
-
+        attachments: User attachments to process
     Yields:
-        Text chunks from the agent response
+        chunks serialised in JSON, from the agent response.
     """
+    run_responses: AsyncIterator[RunResponse]
+
     if (attachments is not None) and len(attachments) > 0:
         attachments = list(
             map(
@@ -50,15 +53,12 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
                 attachments,
             )
         )
-        run_response = await agent.arun(message, stream=True, files=attachments)
+        run_responses = await agent.arun(message, stream=True, files=attachments)
     else:
-        run_response = await agent.arun(message, stream=True)
+        run_responses = await agent.arun(message, stream=True)
 
-    async for chunk in run_response:
-        # chunk.content only contains the text response from the Agent.
-        # For advanced use cases, we should yield the entire chunk
-        # that contains the tool calls and intermediate steps.
-        yield chunk.content
+    async for chunk in run_responses:
+        yield chunk.to_json()
 
 
 # extend this schema to support the local files and URLs.
