@@ -2,6 +2,7 @@ package components
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -34,7 +35,7 @@ type Input struct {
 	// TODO: out this and put in a dedicated layout file.
 	leftpane, rightpane vp.Model
 
-	leftPaneMessages []tea.Msg //TODO: this out, use a better type
+	leftPaneMessages []tea.Msg
 }
 
 type InputKeyMap struct {
@@ -45,6 +46,7 @@ type InputKeyMap struct {
 	PageUp,
 	HalfPageUp,
 	HalfPageDown key.Binding
+	// TODO: add a keybinding for toggling the tool execution view.
 }
 
 var inputKeyMap = InputKeyMap{
@@ -115,7 +117,6 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
 				i.FilePicker.filepicker.FileSelected = ""
-				
 
 				return i, tea.Batch(cmds...)
 			}
@@ -159,37 +160,77 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg.UserMessage.Width = i.leftpane.Width
 		i.leftPaneMessages = append(i.leftPaneMessages, msg.UserMessage)
 
-	case messages.AgentMessageAddedMsg:
+	case messages.RunStartedMsg:
 		// blocking call to receive the first chunk of the stream
 		agentMessage := messages.AgentMessage{
-			StreamChan: msg.StreamChan,
-			Width:      i.leftpane.Width,
+			Width:   i.leftpane.Width,
+			Content: &strings.Builder{},
 		}
-		firstChunk, _ := <-msg.StreamChan
-		if v, ok := firstChunk.(messages.ConcatenateChunkMsg); ok {
-			agentMessage.Content = string(v)
+		firstChunk, _ := <-i.stream
+		if v, ok := firstChunk.(messages.RunResponseContentMsg); ok {
+			agentMessage.Content.WriteString(v.Content)
 			i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
 			i.leftpane.GotoBottom()
 
-			return i, messages.ListenOnStreamChanCmd(msg.StreamChan)
+			return i, messages.ListenOnStreamChanCmd(i.stream)
 		}
 
-	case messages.ConcatenateChunkMsg:
+	case messages.RunResponseContentMsg:
 		// Update the last message in place instead of appending a new one
 		if len(i.leftPaneMessages) > 0 {
 			lastMsgIndex := len(i.leftPaneMessages) - 1
 			lastMsg := i.leftPaneMessages[lastMsgIndex]
 
 			if agentMsg, ok := lastMsg.(messages.AgentMessage); ok {
-				agentMsg.Content += string(msg)
+				agentMsg.Content.WriteString(msg.Content)
 				i.leftPaneMessages[lastMsgIndex] = agentMsg
 				i.leftpane.GotoBottom()
 
-				return i, messages.ListenOnStreamChanCmd(agentMsg.StreamChan)
+			} else {
+				agentMessage := messages.AgentMessage{
+					Width:   i.leftpane.Width,
+					Content: &strings.Builder{},
+				}
+				agentMessage.Content.WriteString(msg.Content)
+				i.leftPaneMessages = append(i.leftPaneMessages, agentMessage)
+				i.leftpane.GotoBottom()
+			}
+		}
+		return i, messages.ListenOnStreamChanCmd(i.stream)
+
+	case messages.ToolCallStartedMsg:
+		toolCallMsg := messages.ToolExecutionMessage{
+			Width:        i.leftpane.Width,
+			Event:        msg.Event,
+			ToolCallName: msg.Tool.ToolName,
+		}
+
+		i.leftPaneMessages = append(i.leftPaneMessages, toolCallMsg)
+		i.leftpane.GotoBottom()
+		return i, messages.ListenOnStreamChanCmd(i.stream)
+
+	case messages.ToolCallCompletedMsg:
+		if len(i.leftPaneMessages) > 0 {
+			lastMsgIndex := len(i.leftPaneMessages) - 1
+			lastMsg := i.leftPaneMessages[lastMsgIndex]
+
+			if teMsg, ok := lastMsg.(messages.ToolExecutionMessage); ok {
+				if msg.Tool.Result != "" {
+					teMsg.ToolCallResult = msg.Tool.Result
+				}
+
+				if msg.Content != "" {
+					teMsg.Content = msg.Content
+				}
+
+				i.leftPaneMessages[lastMsgIndex] = teMsg
+				i.leftpane.GotoBottom()
+
+				return i, messages.ListenOnStreamChanCmd(i.stream)
 			}
 		}
 
-	case messages.EndStream:
+	case messages.RunResponseCompletedMsg:
 		i.status = Idle
 		return i, nil
 	}
@@ -241,17 +282,20 @@ func (i *Input) View() string {
 		// Background(lipgloss.Color("#e2a3c7")).
 		Padding(1, 0)
 
-	content := ""
+	// content := ""
+	var content strings.Builder
 	for _, msg := range i.leftPaneMessages {
 		switch m := msg.(type) {
-		case messages.AgentMessage:
-			content += m.View() + "\n\n"
 		case messages.UserMessage:
-			content += m.View() + "\n\n"
+			content.WriteString(m.View() + "\n\n")
+		case messages.AgentMessage:
+			content.WriteString(m.View() + "\n\n")
+		case messages.ToolExecutionMessage:
+			content.WriteString(m.View() + "\n\n")
 		}
 	}
 
-	i.leftpane.SetContent(content)
+	i.leftpane.SetContent(content.String())
 
 	panes := lipgloss.JoinHorizontal(
 		lipgloss.Top,
@@ -336,6 +380,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 			}
 		}
 
+		// UNBUFFERED CHANNEL
 		stream := make(chan tea.Msg)
 
 		go func() {
@@ -359,18 +404,46 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 			}
 
 			scanner := bufio.NewScanner(resp.Body)
-			scanner.Split(bufio.ScanRunes)
+			scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+				if atEOF && len(data) == 0 {
+					return 0, nil, nil
+				}
+				if idx := strings.Index(string(data), "\n\n"); idx >= 0 {
+					return idx + 2, data[:idx], nil
+				}
+				if atEOF {
+					return len(data), data, nil
+				}
+				return 0, nil, nil
+			})
+
 			for scanner.Scan() {
-				chunk := scanner.Text()
-				if chunk != "" {
-					stream <- messages.ConcatenateChunkMsg(chunk)
+				chunk := scanner.Bytes()
+
+				var rr messages.RunResponse
+				if err := json.Unmarshal(chunk, &rr); err != nil {
+					log.Println("error decoding chunk:", err.Error())
+				} else {
+					switch rr.Event {
+
+					case messages.RunResponseContent:
+						stream <- messages.RunResponseContentMsg(rr)
+
+					case messages.ToolCallStarted:
+						stream <- messages.ToolCallStartedMsg(rr)
+
+					case messages.ToolCallCompleted:
+						stream <- messages.ToolCallCompletedMsg(rr)
+
+					default:
+						log.Println("unknown event type:", rr)
+					}
 				}
 			}
 		}()
 
 		i.status = Streaming
-		return messages.AgentMessageAddedMsg{
-			StreamChan: stream,
-		}
+		i.stream = stream
+		return messages.RunStartedMsg{}
 	}
 }

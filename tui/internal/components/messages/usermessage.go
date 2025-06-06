@@ -1,9 +1,10 @@
 package messages
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/yyovil/tui/internal/utils"
 )
 
@@ -13,7 +14,6 @@ type UserMessage struct {
 	Width, Height int
 }
 
-// UserMessageAddedMsg is a message indicating a user message should be added to the leftpane viewport.
 type UserMessageAddedMsg struct {
 	UserMessage UserMessage
 }
@@ -31,20 +31,20 @@ func (m *UserMessage) View() string {
 		NewStyle().
 		Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
 		MaxWidth(m.Width).
-		// Background(lipgloss.Color("#2c3e50")).
+		Background(lipgloss.Color("#2A1F23")).
 		BorderForeground(lipgloss.Color("#ffafcc")).
 		Padding(0, 1)
 
 	attachmentStyle := lipgloss.NewStyle().Faint(true)
-	var content string
+	var content strings.Builder
 	if len(m.attachments) > 0 {
-		attachmentNameWrapped := ansi.Wordwrap(lipgloss.JoinVertical(lipgloss.Top, m.attachments...), m.Width, utils.Breakpoints)
-		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-2, utils.Breakpoints)
+		attachmentNameWrapped := utils.Wordwrap(lipgloss.JoinVertical(lipgloss.Top, m.attachments...), m.Width)
+		content.WriteString(utils.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-2))
 	} else {
-		content = ansi.Wordwrap(m.prompt, m.Width-2, utils.Breakpoints)
+		content.WriteString(utils.Wordwrap(m.prompt, m.Width-2))
 	}
 
-	return userMessageStyle.Render(content)
+	return userMessageStyle.Render(content.String())
 }
 
 func AddUserMessageCmd(prompt string, attachments []string) tea.Cmd {
