@@ -8,9 +8,9 @@ import (
 )
 
 type UserMessage struct {
-	prompt         string
-	attachmentName string
-	Width, Height  int
+	prompt        string
+	attachments   []string
+	Width, Height int
 }
 
 // UserMessageAddedMsg is a message indicating a user message should be added to the leftpane viewport.
@@ -36,11 +36,9 @@ func (m *UserMessage) View() string {
 		Padding(0, 1)
 
 	attachmentStyle := lipgloss.NewStyle().Faint(true)
-
 	var content string
-
-	if m.attachmentName != "" {
-		attachmentNameWrapped := ansi.Wordwrap(m.attachmentName, m.Width, utils.Breakpoints)
+	if len(m.attachments) > 0 {
+		attachmentNameWrapped := ansi.Wordwrap(lipgloss.JoinVertical(lipgloss.Top, m.attachments...), m.Width, utils.Breakpoints)
 		content = ansi.Wordwrap(m.prompt+"\n"+attachmentStyle.Render(attachmentNameWrapped), m.Width-2, utils.Breakpoints)
 	} else {
 		content = ansi.Wordwrap(m.prompt, m.Width-2, utils.Breakpoints)
@@ -49,17 +47,17 @@ func (m *UserMessage) View() string {
 	return userMessageStyle.Render(content)
 }
 
-func AddUserMessageCmd(prompt string, attachmentName string) tea.Cmd {
+func AddUserMessageCmd(prompt string, attachments []string) tea.Cmd {
 	return func() tea.Msg {
 		return UserMessageAddedMsg{
-			UserMessage: NewUserMessage(prompt, attachmentName),
+			UserMessage: NewUserMessage(prompt, attachments),
 		}
 	}
 }
 
-func NewUserMessage(prompt string, attachmentName string) UserMessage {
+func NewUserMessage(prompt string, attachments []string) UserMessage {
 	return UserMessage{
-		prompt:         prompt,
-		attachmentName: attachmentName,
+		prompt:      prompt,
+		attachments: attachments,
 	}
 }

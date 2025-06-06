@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -126,27 +127,21 @@ func (fpc FilePicker) footerView() string {
 		Width(fpc.viewport.Width-2).
 		MaxWidth(fpc.viewport.Width).
 		Height(1).
-		MaxHeight(2).
+		MaxHeight(1).
 		Padding(0, 1, 0, 1).
 		AlignVertical(lipgloss.Center).
 		Border(lipgloss.InnerHalfBlockBorder(), false, true).
 		Background(lipgloss.Color("#343a40"))
 
+	fpSelectedStyle := fpc.filepicker.Styles.Selected
 	if len(fpc.selectedFiles) == 0 {
-		s.WriteString("Pick a file\n\n")
+		s.WriteString("Pick a file")
 	} else if len(fpc.selectedFiles) == 1 {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
-		s.WriteString("Selected file: " + fpc.filepicker.Styles.Selected.Render(fpc.selectedFiles[0]) + "\n")
+		s.WriteString("Selected file: " + fpSelectedStyle.Render(fpc.selectedFiles[0]))
 	} else {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
-		for idx, selectedFile := range fpc.selectedFiles {
-			s.WriteString(fpc.filepicker.Styles.Selected.Render(selectedFile))
-			if idx < len(fpc.selectedFiles)-1 {
-				s.WriteString(", ")
-			} else {
-				s.WriteString("\n")
-			}
-		}
+		s.WriteString("Total files selected: " + fpSelectedStyle.Render(fmt.Sprintf("%d", len(fpc.selectedFiles))))
 	}
 
 	return footerStyle.Render(s.String())

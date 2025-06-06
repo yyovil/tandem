@@ -26,13 +26,15 @@ const (
 
 type Input struct {
 	status        Status
+	stream        chan tea.Msg
 	width, height int
 	userPrompt    string
 	textarea      textarea.Model
 	FilePicker    FilePicker
 	// TODO: out this and put in a dedicated layout file.
 	leftpane, rightpane vp.Model
-	leftPaneMessages    []tea.Msg //TODO: this out, use a better type
+
+	leftPaneMessages []tea.Msg //TODO: this out, use a better type
 }
 
 type InputKeyMap struct {
@@ -108,14 +110,13 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				i.userPrompt = i.textarea.Value()
-				attachmentName := i.FilePicker.filepicker.FileSelected
-				i.status = Requesting
 
-				cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, attachmentName))
+				cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, i.FilePicker.selectedFiles))
 
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
 				i.FilePicker.filepicker.FileSelected = ""
+				i.FilePicker.selectedFiles = nil
 
 				return i, tea.Batch(cmds...)
 			}
@@ -160,7 +161,6 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		i.leftPaneMessages = append(i.leftPaneMessages, msg.UserMessage)
 
 	case messages.AgentMessageAddedMsg:
-		i.status = Streaming
 		// blocking call to receive the first chunk of the stream
 		agentMessage := messages.AgentMessage{
 			StreamChan: msg.StreamChan,
@@ -176,7 +176,6 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case messages.ConcatenateChunkMsg:
-		i.status = Streaming
 		// Update the last message in place instead of appending a new one
 		if len(i.leftPaneMessages) > 0 {
 			lastMsgIndex := len(i.leftPaneMessages) - 1
@@ -279,14 +278,15 @@ func (i Input) footerView() string {
 
 	fpSelectedStyle := i.FilePicker.filepicker.Styles.Selected
 	selectedFiles := i.FilePicker.selectedFiles
+
 	if len(selectedFiles) == 0 {
-		s.WriteString("No Attachments")
+		s.WriteString("No attachments")
 	} else if len(selectedFiles) == 1 {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
 		s.WriteString("Selected file: " + fpSelectedStyle.Render(selectedFiles[0]))
 	} else {
 		footerStyle = footerStyle.BorderForeground(lipgloss.Color("212"))
-		s.WriteString("Total Attachments: " + fpSelectedStyle.Render(fmt.Sprintf("%d", len(selectedFiles))))
+		s.WriteString("Total attachments: " + fpSelectedStyle.Render(fmt.Sprintf("%d", len(selectedFiles))))
 	}
 
 	statusStyle := lipgloss.
@@ -315,7 +315,9 @@ func NewInput() Input {
 	}
 }
 
-func (i Input) sendRunRequestCmd() tea.Cmd {
+func (i *Input) sendRunRequestCmd() tea.Cmd {
+	i.status = Requesting
+
 	return func() tea.Msg {
 		attachment, err := i.FilePicker.GetSelectedFile()
 		if err != nil {
@@ -346,6 +348,7 @@ func (i Input) sendRunRequestCmd() tea.Cmd {
 				i.status = Idle
 				log.Println("error sending request:", err.Error())
 				// TODO: show a user feedback for this error
+				log.Println("input status is: ", i.status)
 				return
 			}
 			defer resp.Body.Close()
@@ -367,6 +370,7 @@ func (i Input) sendRunRequestCmd() tea.Cmd {
 			}
 		}()
 
+		i.status = Streaming
 		return messages.AgentMessageAddedMsg{
 			StreamChan: stream,
 		}

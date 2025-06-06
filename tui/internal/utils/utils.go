@@ -59,7 +59,6 @@ func GetPostRequest(Prompt string, attachment Attachment) (*http.Request, error)
 		return nil, err
 	}
 
-	log.Println("JSON Data:", string(jsonData))
 	agentId := "Mr. Burnham"
 	runRequest, err := http.NewRequest(http.MethodPost, "http://localhost:8000/v1/agents/"+agentId+"/runs", bytes.NewBuffer(jsonData))
 	if err != nil {
