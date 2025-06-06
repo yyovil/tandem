@@ -110,13 +110,12 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				i.userPrompt = i.textarea.Value()
-
 				cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, i.FilePicker.selectedFiles))
 
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
 				i.FilePicker.filepicker.FileSelected = ""
-				i.FilePicker.selectedFiles = nil
+				
 
 				return i, tea.Batch(cmds...)
 			}
@@ -319,7 +318,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 	i.status = Requesting
 
 	return func() tea.Msg {
-		attachment, err := i.FilePicker.GetSelectedFile()
+		attachments, err := i.FilePicker.GetSelectedFiles()
 		if err != nil {
 			i.status = Idle
 			log.Println("error getting the attachment:", err.Error())
@@ -328,7 +327,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 			}
 		}
 
-		req, err := utils.GetPostRequest(i.userPrompt, attachment)
+		req, err := utils.GetPostRequest(i.userPrompt, attachments)
 		if err != nil {
 			i.status = Idle
 			log.Println("error creating request:", err.Error())
@@ -348,7 +347,6 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 				i.status = Idle
 				log.Println("error sending request:", err.Error())
 				// TODO: show a user feedback for this error
-				log.Println("input status is: ", i.status)
 				return
 			}
 			defer resp.Body.Close()

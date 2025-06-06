@@ -33,10 +33,10 @@ type RunRequest struct {
 	// TODO: right now we are just gonna pass a array containing only one Attachment. then we will focus on supporting multiple attachments.
 }
 
-func GetPostRequest(Prompt string, attachment Attachment) (*http.Request, error) {
+func GetPostRequest(prompt string, attachments []Attachment) (*http.Request, error) {
 
 	runRequestBody := RunRequest{
-		Prompt:      Prompt,
+		Prompt:      prompt,
 		Stream:      "true",
 		Model:       GEMINI_2_5_FLASH_PREVIEW_04_17,
 		UserId:      "tanishq",
@@ -44,12 +44,13 @@ func GetPostRequest(Prompt string, attachment Attachment) (*http.Request, error)
 		Attachments: nil,
 	}
 
-	if attachment.Filepath != "" {
-		runRequestBody.Attachments = []Attachment{
-			{
+	if len(attachments) > 0 {
+		for _, attachment := range attachments {
+			runRequestBody.Attachments = append(runRequestBody.Attachments, Attachment{
 				Filepath: attachment.Filepath,
 				MimeType: attachment.MimeType,
-			},
+				// Content:  attachment.Content,
+			})
 		}
 	}
 
@@ -57,6 +58,8 @@ func GetPostRequest(Prompt string, attachment Attachment) (*http.Request, error)
 	if err != nil {
 		log.Println("error marshaling JSON:", err.Error())
 		return nil, err
+	} else {
+		log.Println("jsonData: ", string(jsonData))
 	}
 
 	agentId := "Mr. Burnham"

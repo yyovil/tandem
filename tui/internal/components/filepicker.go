@@ -99,6 +99,7 @@ func (fpc *FilePicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				fpc.selectedFiles = append(fpc.selectedFiles, fpc.filepicker.FileSelected)
 			}
 		}
+		// log.Println("fpc.selectedFiles: ", fpc.selectedFiles)
 	}
 
 	fpc.viewport, cmd = fpc.viewport.Update(msg)
@@ -147,9 +148,8 @@ func (fpc FilePicker) footerView() string {
 	return footerStyle.Render(s.String())
 }
 
-func (fpc FilePicker) GetSelectedFile() (utils.Attachment, error) {
-	fs := fpc.filepicker.FileSelected
-	if fs != "" {
+func (fpc *FilePicker) GetSelectedFiles() (attachments []utils.Attachment, error error) {
+	if len(fpc.selectedFiles) > 0 {
 		// fileStat, err := os.Stat(fs)
 
 		// if err != nil {
@@ -167,28 +167,24 @@ func (fpc FilePicker) GetSelectedFile() (utils.Attachment, error) {
 		// 	}, errors.New("can't get the selected dir")
 		// }
 
-		content, err := os.ReadFile(fs)
-		if err != nil {
-			log.Println("error reading file:", err.Error())
-			return utils.Attachment{
-				Filepath: "",
-				Url:      "",
-				Content:  "",
-			}, err
+		for _, selectedFile := range fpc.selectedFiles {
+			content, err := os.ReadFile(selectedFile)
+			if err != nil {
+				log.Println("error reading a file:", err.Error())
+				return nil, err
+			} else {
+				attachments = append(attachments, utils.Attachment{
+					Filepath: selectedFile,
+					MimeType: strings.Split(http.DetectContentType(content), ";")[0],
+					Content:  string(content),
+				})
+			}
 		}
+		fpc.selectedFiles = nil
 
-		return utils.Attachment{
-			Filepath: fpc.filepicker.FileSelected,
-			Url:      "",
-			MimeType: strings.Split(http.DetectContentType(content), ";")[0],
-			Content:  string(content),
-		}, nil
-
+		return attachments, nil
 	} else {
-		return utils.Attachment{
-			Filepath: "",
-			Content:  "",
-		}, nil
+		return nil, nil
 	}
 }
 

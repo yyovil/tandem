@@ -38,7 +38,7 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
     Yields:
         Text chunks from the agent response
     """
-    if attachments is not None:
+    if (attachments is not None) and len(attachments) > 0:
         attachments = list(
             map(
                 lambda attachment: File(
