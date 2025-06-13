@@ -1,4 +1,6 @@
 # Tandem
+![image](https://github.com/user-attachments/assets/490199f2-097b-4be5-8f21-763c8c28901b)
+
 <p>
 <i>Agentic system</i> to assist in penetration testing.
 </p>
