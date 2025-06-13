@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 type Model string
@@ -58,8 +60,6 @@ func GetPostRequest(prompt string, attachments []Attachment) (*http.Request, err
 	if err != nil {
 		log.Println("error marshaling JSON:", err.Error())
 		return nil, err
-	} else {
-		log.Println("jsonData: ", string(jsonData))
 	}
 
 	agentId := "Mr. Burnham"
@@ -73,4 +73,8 @@ func GetPostRequest(prompt string, attachments []Attachment) (*http.Request, err
 	return runRequest, nil
 }
 
-var Breakpoints string = " ,-"
+func Wordwrap(content string, width int) string {
+	// ADHD: these breakpoints are silly.
+	var breakpoints string = " ,-"
+	return ansi.Wordwrap(content, width, breakpoints)
+}

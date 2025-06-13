@@ -1,5 +1,7 @@
 from typing import AsyncGenerator, List, Optional, AsyncIterator
+from typing import AsyncGenerator, List, Optional, AsyncIterator
 from utils.models import Model
+from agno.run.response import RunResponse
 from agno.run.response import RunResponse
 from agno.agent import Agent
 from agno.media import File
@@ -36,9 +38,13 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
         agent: The agent instance to interact with
         message: User message to process
         attachments: User attachments to process
+        attachments: User attachments to process
     Yields:
         chunks serialised in JSON, from the agent response.
+        chunks serialised in JSON, from the agent response.
     """
+    run_responses: AsyncIterator[RunResponse]
+
     run_responses: AsyncIterator[RunResponse]
 
     if (attachments is not None) and len(attachments) > 0:
@@ -54,11 +60,14 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
             )
         )
         run_responses = await agent.arun(message, stream=True, files=attachments)
+        run_responses = await agent.arun(message, stream=True, files=attachments)
     else:
+        run_responses = await agent.arun(message, stream=True)
         run_responses = await agent.arun(message, stream=True)
 
     async for chunk in run_responses:
-        yield chunk.to_json()
+        # messages are separated by a pair of newline characters.
+        yield chunk.to_json() + "\n\n"
 
 
 # extend this schema to support the local files and URLs.
