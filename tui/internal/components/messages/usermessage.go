@@ -30,6 +30,7 @@ func (m *UserMessage) View() string {
 	userMessageStyle := lipgloss.
 		NewStyle().
 		Border(lipgloss.InnerHalfBlockBorder(), false, false, false, true).
+		Width(m.Width).
 		MaxWidth(m.Width).
 		Background(lipgloss.Color("#2A1F23")).
 		BorderForeground(lipgloss.Color("#ffafcc")).

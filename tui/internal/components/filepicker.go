@@ -57,11 +57,13 @@ func (fpc *FilePicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		fpc.width = msg.Width
-		fpc.height = msg.Height
-		fpc.viewport = vp.New((msg.Width*80)/100, msg.Height/2)
+		fpc.width = (msg.Width * 80) / 100
+		fpc.height = msg.Height / 2
+
+		fpc.viewport = vp.New(fpc.width, fpc.height)
+
 		fpc.viewport.GotoTop()
-		fpc.filepicker.SetHeight(fpc.viewport.Height)
+		fpc.filepicker.SetHeight(fpc.height)
 
 	case tea.KeyMsg:
 		switch {
@@ -117,8 +119,15 @@ func (fpc *FilePicker) View() string {
 	var s strings.Builder
 	s.WriteString(fpc.filepicker.View())
 	fpc.viewport.SetContent(s.String())
-	fpc.viewport.Style = lipgloss.NewStyle().Border(lipgloss.NormalBorder())
-	return lipgloss.Place(fpc.width, fpc.height, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Left, fpc.viewport.View(), fpc.footerView()))
+	fpc.viewport.Style = lipgloss.NewStyle().
+		// Width(fpc.width).
+		// Height(fpc.height).
+		// MaxWidth(fpc.width).
+		// MaxHeight(fpc.height).
+		Border(lipgloss.NormalBorder())
+
+	// return lipgloss.JoinVertical(lipgloss.Left, fpc.viewport.View(), fpc.footerView())
+	return fpc.viewport.View()
 }
 
 func (fpc FilePicker) footerView() string {
@@ -200,6 +209,5 @@ type AttachmentMsg struct {
 }
 
 /*
-TODO: support multifile selection.
 BUG: we need to know the file object at the cursor position when Open action is performed.
 */

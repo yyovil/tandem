@@ -34,12 +34,12 @@ def get_reconnoiter(
             "Be concise and clear.",
             "Use kali linux cli tools for reconnaissance.",
             "Use the kali:withtools image to spawn a new container.",
-            "Run tail -f /dev/null cmd to run the container infinitely after spawning.",
             "Connect to host docker network.",
+            "Run tail -f /dev/null cmd to run the container infinitely after spawning.",
+            "Reuse any kali:withtools image containers if they are available.",
             "Progressively exec the bash cmds in the docker container.",
             "Always ask for clarification if certain things aren't clear to you.",
             "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash.",
-            "Add extended attributes to the scanning results file to descriptively reflect the intention of the scan performed.",
         ],
         tools=[
             DockerTools(
@@ -55,7 +55,9 @@ def get_reconnoiter(
         add_history_to_messages=True,
         add_name_to_instructions=True,
         stream=True,
-        debug_mode=debug_mode,
         read_chat_history=True,
+        add_state_in_messages=True,
+        add_memory_references=True,
+        debug_mode=debug_mode,
         additional_context=additional_context,
     )

@@ -1,7 +1,5 @@
 from typing import AsyncGenerator, List, Optional, AsyncIterator
-from typing import AsyncGenerator, List, Optional, AsyncIterator
 from utils.models import Model
-from agno.run.response import RunResponse
 from agno.run.response import RunResponse
 from agno.agent import Agent
 from agno.media import File
@@ -43,7 +41,6 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
         chunks serialised in JSON, from the agent response.
         chunks serialised in JSON, from the agent response.
     """
-    run_responses: AsyncIterator[RunResponse]
 
     run_responses: AsyncIterator[RunResponse]
 
@@ -60,9 +57,7 @@ async def chat_response_streamer(agent: Agent, message: str, attachments: Option
             )
         )
         run_responses = await agent.arun(message, stream=True, files=attachments)
-        run_responses = await agent.arun(message, stream=True, files=attachments)
     else:
-        run_responses = await agent.arun(message, stream=True)
         run_responses = await agent.arun(message, stream=True)
 
     async for chunk in run_responses:

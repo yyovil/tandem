@@ -14,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yyovil/tui/internal/components/messages"
+	"github.com/yyovil/tui/internal/layout"
 	"github.com/yyovil/tui/internal/utils"
 )
 
@@ -104,6 +105,8 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = i.FilePicker.Init()
 			cmds = append(cmds, cmd)
 			i.FilePicker.showFilePicker = true
+			i.textarea.Blur()
+
 		case key.Matches(msg, inputKeyMap.Send):
 			if !i.FilePicker.showFilePicker {
 
@@ -113,6 +116,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				i.userPrompt = i.textarea.Value()
 				cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, i.FilePicker.selectedFiles))
+				i.leftpane.GotoBottom()
 
 				i.textarea.Reset()
 				i.FilePicker.viewport.GotoTop()
@@ -126,16 +130,22 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return i, tea.Batch(cmds...)
 
 		case key.Matches(msg, inputKeyMap.Quit):
+			if !i.textarea.Focused() {
+				i.textarea.Focus()
+			}
+
 			if !i.FilePicker.showFilePicker {
 				return i, tea.Quit
 			}
 
 		default:
-			cmd = i.textarea.Focus()
-			cmds = append(cmds, cmd)
-			i.textarea, cmd = i.textarea.Update(msg)
-			cmds = append(cmds, cmd)
-			return i, tea.Batch(cmds...)
+			if !i.FilePicker.showFilePicker {
+				cmd = i.textarea.Focus()
+				cmds = append(cmds, cmd)
+				i.textarea, cmd = i.textarea.Update(msg)
+				cmds = append(cmds, cmd)
+				return i, tea.Batch(cmds...)
+			}
 		}
 	case tea.WindowSizeMsg:
 		i.textarea.SetWidth(msg.Width - 2)
@@ -249,10 +259,6 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (i *Input) View() string {
 
-	if i.FilePicker.showFilePicker {
-		return i.FilePicker.View()
-	}
-
 	inputStyle := lipgloss.
 		NewStyle().
 		Width(i.width-2).
@@ -287,11 +293,11 @@ func (i *Input) View() string {
 	for _, msg := range i.leftPaneMessages {
 		switch m := msg.(type) {
 		case messages.UserMessage:
-			content.WriteString(m.View() + "\n\n")
+			content.WriteString(m.View() + "\n")
 		case messages.AgentMessage:
-			content.WriteString(m.View() + "\n\n")
+			content.WriteString(m.View() + "\n")
 		case messages.ToolExecutionMessage:
-			content.WriteString(m.View() + "\n\n")
+			content.WriteString(m.View() + "\n")
 		}
 	}
 
@@ -302,6 +308,16 @@ func (i *Input) View() string {
 		leftPaneStyle.Render(i.leftpane.View()),
 		rightPaneStyle.Render(i.rightpane.View()),
 	)
+
+	if i.FilePicker.showFilePicker {
+		x := (i.width - i.FilePicker.viewport.Width) / 2
+		y := (i.height - i.FilePicker.viewport.Height) / 2
+
+		fg := i.FilePicker.View()
+		bg := lipgloss.JoinVertical(lipgloss.Top, panes, inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
+
+		return layout.Composite(x, y, fg, bg)
+	}
 
 	return lipgloss.JoinVertical(lipgloss.Top, panes, inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
 }
@@ -390,6 +406,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 			resp, err := client.Do(req)
 			if err != nil {
 				i.status = Idle
+				
 				log.Println("error sending request:", err.Error())
 				// TODO: show a user feedback for this error
 				return

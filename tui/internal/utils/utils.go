@@ -78,3 +78,14 @@ func Wordwrap(content string, width int) string {
 	var breakpoints string = " ,-"
 	return ansi.Wordwrap(content, width, breakpoints)
 }
+
+// Clamp ensures that the value is within the specified min and max range.
+func Clamp(value, min, max int) int {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
