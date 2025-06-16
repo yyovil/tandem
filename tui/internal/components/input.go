@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	vp "github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,9 +22,11 @@ import (
 type Status string
 
 const (
-	Streaming  Status = "Streaming"
-	Requesting Status = "Requesting"
-	Idle       Status = "Idle"
+	Requesting    Status = "Requesting"
+	Streaming     Status = "Streaming"
+	ToolCall      Status = "Tool call"
+	ToolCompleted Status = "Tool completed"
+	Idle          Status = "Idle"
 )
 
 type Input struct {
@@ -31,6 +34,7 @@ type Input struct {
 	stream        chan tea.Msg
 	width, height int
 	userPrompt    string
+	spinner       spinner.Model
 	textarea      textarea.Model
 	FilePicker    FilePicker
 	// TODO: out this and put in a dedicated layout file.
@@ -83,9 +87,12 @@ var inputKeyMap = InputKeyMap{
 
 func (i *Input) Init() tea.Cmd {
 	i.textarea.Placeholder = "Assign tasks to AI Agents here..."
-	i.textarea.Focus()
 	i.textarea.ShowLineNumbers = false
-	return textarea.Blink
+	return tea.Batch(
+		textarea.Blink,
+		i.spinner.Tick,
+		i.textarea.Focus(),
+	)
 }
 
 func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -93,6 +100,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case spinner.TickMsg:
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, inputKeyMap.PageUp),
@@ -172,6 +180,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case messages.RunStartedMsg:
 		// blocking call to receive the first chunk of the stream
+		i.status = Streaming
 		agentMessage := messages.AgentMessage{
 			Width:   i.leftpane.Width,
 			Content: &strings.Builder{},
@@ -186,6 +195,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case messages.RunResponseContentMsg:
+		i.status = Streaming
 		// Update the last message in place instead of appending a new one
 		if len(i.leftPaneMessages) > 0 {
 			lastMsgIndex := len(i.leftPaneMessages) - 1
@@ -209,6 +219,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return i, messages.ListenOnStreamChanCmd(i.stream)
 
 	case messages.ToolCallStartedMsg:
+		i.status = ToolCall
 		toolCallMsg := messages.ToolExecutionMessage{
 			Width:        i.leftpane.Width,
 			Event:        msg.Event,
@@ -220,6 +231,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return i, messages.ListenOnStreamChanCmd(i.stream)
 
 	case messages.ToolCallCompletedMsg:
+		i.status = ToolCompleted
 		if len(i.leftPaneMessages) > 0 {
 			lastMsgIndex := len(i.leftPaneMessages) - 1
 			lastMsg := i.leftPaneMessages[lastMsgIndex]
@@ -245,6 +257,8 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return i, nil
 	}
 
+	i.spinner, cmd = i.spinner.Update(msg)
+	cmds = append(cmds, cmd)
 	i.leftpane, cmd = i.leftpane.Update(msg)
 	cmds = append(cmds, cmd)
 	_, cmd = i.FilePicker.Update(msg)
@@ -319,18 +333,34 @@ func (i *Input) View() string {
 		return layout.Composite(x, y, fg, bg)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Top, panes, inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
+	if i.status != Idle {
+		return lipgloss.JoinVertical(lipgloss.Top,
+			panes,
+			i.headerView()+"\n"+inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Top,
+		panes,
+		inputStyle.Render(i.textarea.View())+"\n"+i.footerView())
 }
 
+// displays the status of the run request to the agent.
+func (i Input) headerView() string {
+	spinnerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffafcc")).Italic(true).PaddingLeft(1)
+	return spinnerStyle.Render(string(i.status) + i.spinner.View())
+}
+
+// displays the attachement
 func (i Input) footerView() string {
 	var s strings.Builder
 	footerStyle := lipgloss.
 		NewStyle().
 		Height(1).
-		Width(i.width-12).
+		Width(i.width-2).
 		MaxHeight(2).
 		Border(lipgloss.InnerHalfBlockBorder(), false).
 		BorderLeft(true).
+		BorderRight(true).
 		PaddingLeft(1).
 		Background(lipgloss.Color("#343a40")).
 		MarginBottom(1)
@@ -348,20 +378,22 @@ func (i Input) footerView() string {
 		s.WriteString("Total attachments: " + fpSelectedStyle.Render(fmt.Sprintf("%d", len(selectedFiles))))
 	}
 
-	statusStyle := lipgloss.
-		NewStyle().
-		Width(10).
-		Height(1).
-		Border(lipgloss.InnerHalfBlockBorder(), false).
-		BorderRight(true).
-		Background(lipgloss.Color("#fb5607")).
-		AlignHorizontal(lipgloss.Center)
+	// statusStyle := lipgloss.
+	// 	NewStyle().
+	// 	Width(10).
+	// 	Height(1).
+	// 	Border(lipgloss.InnerHalfBlockBorder(), false).
+	// 	BorderRight(true).
+	// 	Background(lipgloss.Color("#fb5607")).
+	// 	AlignHorizontal(lipgloss.Center)
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, footerStyle.Render(s.String()), statusStyle.Render(string(i.status)))
+	// return lipgloss.JoinHorizontal(lipgloss.Left, footerStyle.Render(s.String()), statusStyle.Render(string(i.status)))
+	return footerStyle.Render(s.String())
 }
 
 func NewInput() Input {
 	return Input{
+		spinner:          spinner.New(spinner.WithSpinner(spinner.Meter)),
 		status:           Idle,
 		leftPaneMessages: []tea.Msg{},
 		width:            0,
@@ -406,7 +438,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 			resp, err := client.Do(req)
 			if err != nil {
 				i.status = Idle
-				
+
 				log.Println("error sending request:", err.Error())
 				// TODO: show a user feedback for this error
 				return
@@ -444,6 +476,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 					switch rr.Event {
 
 					case messages.RunResponseContent:
+
 						stream <- messages.RunResponseContentMsg(rr)
 
 					case messages.ToolCallStarted:
@@ -453,6 +486,7 @@ func (i *Input) sendRunRequestCmd() tea.Cmd {
 						stream <- messages.ToolCallCompletedMsg(rr)
 
 					default:
+						i.status = Idle
 						log.Println("unknown event type:", rr)
 					}
 				}

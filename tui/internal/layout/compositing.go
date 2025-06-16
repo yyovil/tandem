@@ -41,7 +41,7 @@ func Composite(x, y int, fg, bg string) string {
 	var view strings.Builder
 
 	for row, bgLine := range bglines {
-		// ADHD: this is something mysterious.
+		// ADHD: this is something mysterious. after this, compositing started working all of sudden. honestly, I don't know why. and the guy from whom i copied this copied from someone else in turn OG: github.com/yorukot you would get to see the PR mentioned in the opencode-ai/opencode.
 		if row > 0 {
 			view.WriteString("\n")
 		}

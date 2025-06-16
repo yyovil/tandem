@@ -35,7 +35,7 @@ def get_reconnoiter(
             "Use kali linux cli tools for reconnaissance.",
             "Use the kali:withtools image to spawn a new container.",
             "Connect to host docker network.",
-            "Run tail -f /dev/null cmd to run the container infinitely after spawning.",
+            "get a bash shell in the container.",
             "Reuse any kali:withtools image containers if they are available.",
             "Progressively exec the bash cmds in the docker container.",
             "Always ask for clarification if certain things aren't clear to you.",
@@ -47,6 +47,7 @@ def get_reconnoiter(
                 enable_image_management=True,
                 enable_network_management=True,
                 enable_volume_management=True,
+
             )
         ],
         show_tool_calls=True,
