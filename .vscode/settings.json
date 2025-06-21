@@ -14,7 +14,7 @@
     "GOROOT": "/nix/store/g29rrn8qqlg4yjqv543ryrkimr7fk43h-go-1.24.1/share/go",
     "GOENV": "${workspaceFolder}/.go/env/env"
   },
-  "editor.tabSize": 4,
+  "editor.tabSize": 2,
   "nix.enableLanguageServer": true,
   "nix.serverPath": "nil",
   "ruff.path": [
@@ -32,4 +32,6 @@
   },
   "terminal.integrated.defaultProfile.linux": "nix-develop",
   "terminal.integrated.cwd": "${workspaceFolder}",
+  "go.formatTool": "gofmt",
+  "editor.formatOnSave": true,
 }
