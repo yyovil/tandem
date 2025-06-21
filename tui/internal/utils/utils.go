@@ -32,7 +32,6 @@ type RunRequest struct {
 	UserId      string       `json:"user_id"`
 	SessionId   string       `json:"session_id"`
 	Attachments []Attachment `json:"attachments"`
-	// TODO: right now we are just gonna pass a array containing only one Attachment. then we will focus on supporting multiple attachments.
 }
 
 func GetPostRequest(prompt string, attachments []Attachment) (*http.Request, error) {

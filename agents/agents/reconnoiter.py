@@ -58,7 +58,6 @@ def get_reconnoiter(
         stream=True,
         read_chat_history=True,
         add_state_in_messages=True,
-        add_memory_references=True,
         debug_mode=debug_mode,
         additional_context=additional_context,
     )
