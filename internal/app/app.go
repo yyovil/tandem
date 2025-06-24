@@ -13,15 +13,15 @@ import (
 type Status string
 
 const (
-	Requesting    Status = "Requesting"
-	Streaming     Status = "Streaming"
-	ToolCall      Status = "Tool call"
-	ToolCompleted Status = "Tool completed"
-	Idle          Status = "Idle"
+	Requesting    Status = "requesting"
+	Streaming     Status = "streaming"
+	ToolCall      Status = "tool_call"
+	ToolCompleted Status = "tool_completed"
+	Idle          Status = "idle"
 )
 
 type App struct {
-	history chat.History //in-memory chat history that is sent to the agent.
+	chat    chat.Chat //in-memory chat history that is sent to the agent.
 	agent   agent.Agent
 	status  Status
 	input   components.Input
@@ -32,11 +32,11 @@ type App struct {
 
 type AppKeyMap struct {
 	SelectModel,
-	RunAgent key.Binding
+	SendMessage key.Binding
 }
 
 var appKeyMap = AppKeyMap{
-	RunAgent: key.NewBinding(
+	SendMessage: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "send message"),
 	),
@@ -48,18 +48,8 @@ var appKeyMap = AppKeyMap{
 
 func (a *App) Init() tea.Cmd {
 	a.context, a.cancel = context.WithCancel(context.Background())
-
-	if agent, err := agent.NewAgent(a.setting); err != nil {
-		// TODO: handle the error gracefully, maybe show a message to the user.
-	} else {
-		a.agent = agent
-	}
-
-	a.history.Init()
-
 	input := &components.Input{}
 	input.Init()
-
 	return nil
 }
 
@@ -67,29 +57,33 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO: listen for messages from the agent.
 	var (
 		cmds []tea.Cmd
-		cmd  tea.Cmd
 	)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, appKeyMap.RunAgent):
+		case key.Matches(msg, appKeyMap.SendMessage):
 			/*
 				TODO:
 				1. update the chat history.
-				2. clear the input textarea.
-				3. within a session there could be only one active agent.
+				2. within a session there could be only one active agent.
 			*/
-			return a, a.agent.Run(a.context, a.history.Channel)
+			input, cmd := a.input.Update(msg)
+			a.input = input.(components.Input)
+			cmds = append(cmds, cmd)
+
+			chatModel, cmd := a.chat.Update(msg)
+			a.chat = chatModel.(chat.Chat)
+			cmds = append(cmds, cmd)
+
+			return a, tea.Batch(cmds...)
+
 		case key.Matches(msg, appKeyMap.SelectModel):
 			/*
 				TODO:
-				1. open the dialog.
-
+				1. open selectModelDialog
+				2. update selectModelDialog
 			*/
-
-			_, cmd = a.setting.Update(msg)
-			cmds = append(cmds, cmd)
 			return a, tea.Batch(cmds...)
 		}
 
@@ -105,6 +99,8 @@ func (a *App) View() string {
 
 func NewApp() *tea.Program {
 
+	// TODO: load the user settings here. also define fallback defaults.
+
 	agent, err := agent.NewAgent()
 	if err != nil {
 		// TODO: produce better response for the user explaining the difficulty here.
@@ -112,10 +108,9 @@ func NewApp() *tea.Program {
 	}
 
 	app := &App{
-		status:  Idle,
-		agent:   agent,
-		input:   components.NewInput(),
-		history: *chat.NewHistory(),
+		status: Idle,
+		agent:  agent,
+		input:  components.NewInput(),
 	}
 
 	return tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())

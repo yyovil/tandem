@@ -8,22 +8,16 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yyovil/tandem/internal/agent/providers"
 	"github.com/yyovil/tandem/internal/chat"
-	"google.golang.org/genai"
 )
 
-type Service interface {
-	Run()
-}
-
 type Agent struct {
-	Id       string
 	Provider providers.Provider
-	Chat     chat.Chat //I'm not sure what's the use of this.
+	Chat     chat.Chat
 	Settings Settings
 }
 
 // Run executes the agent's logic, generating content based on the chat history and settings.
-func (a Agent) Run(ctx context.Context, content chan<- genai.Content) tea.Cmd {
+func (a Agent) Run(ctx context.Context, stream chan<- chat.Message) tea.Cmd {
 	/*
 		TODO:
 		1. check if there's a chat session available already.

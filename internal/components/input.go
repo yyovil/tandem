@@ -17,7 +17,6 @@ import (
 	"github.com/yyovil/tandem/internal/components/messages"
 	"github.com/yyovil/tandem/internal/layout"
 	// "github.com/yyovil/tandem/internal/utils"
-
 )
 
 // type Status string
@@ -86,7 +85,7 @@ var inputKeyMap = InputKeyMap{
 	),
 }
 
-func (i *Input) Init() tea.Cmd {
+func (i Input) Init() tea.Cmd {
 	i.textarea.Placeholder = "Assign tasks to AI Agents here..."
 	i.textarea.ShowLineNumbers = false
 	return tea.Batch(
@@ -96,7 +95,11 @@ func (i *Input) Init() tea.Cmd {
 	)
 }
 
-func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+/* 
+TODO:
+1. handle the enter key msg to clear the input value.
+*/
+func (i Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
@@ -271,7 +274,7 @@ func (i *Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return i, tea.Batch(cmds...)
 }
 
-func (i *Input) View() string {
+func (i Input) View() string {
 
 	inputStyle := lipgloss.
 		NewStyle().
@@ -393,7 +396,7 @@ func (i Input) footerView() string {
 
 func NewInput() Input {
 	return Input{
-		spinner:          spinner.New(spinner.WithSpinner(spinner.Meter)),
+		spinner: spinner.New(spinner.WithSpinner(spinner.Meter)),
 		// status:           Idle,
 		leftPaneMessages: []tea.Msg{},
 		width:            0,

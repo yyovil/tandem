@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yyovil/tandem/internal/agent/providers"
 	"github.com/yyovil/tandem/internal/agent/tools"
 )
@@ -18,15 +17,7 @@ type Settings struct {
 	Instructions []string           `json:"instructions"`
 	Model        *providers.ModelId `json:"model,omitempty"`
 	Name         string             `json:"name,omitempty"`
-	Tools        []tools.Tool       `json:"tools"`
-}
-
-func (s *Settings) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	/*
-		TODO:
-		1. update the settings attributes here.
-	*/
-	return nil, nil
+	Tools        []tools.ToolName   `json:"tools"`
 }
 
 func NewSettings(path string) (settings Settings, err error) {
@@ -43,20 +34,11 @@ func NewSettings(path string) (settings Settings, err error) {
 	}
 
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(settings)
+	err = decoder.Decode(&settings)
 	if err != nil {
 		log.Println("Error decoding settings file:", err)
 		return settings, err
 	}
 
-	// TODO: concatenate name, description, goal and the instructions together to form the system instruction.
-
-	return Settings{
-		Model: settings.Model,
-		Tools: settings.Tools,
-	}, nil
+	return settings, nil
 }
-
-/*
-TODO: support configuration using agents.json file in the root or some like that.
-*/

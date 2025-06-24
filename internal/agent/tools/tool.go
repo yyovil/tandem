@@ -1,10 +1,7 @@
 package tools
 
-//TODO: make it compatible with genai.Tool
-type Tool string
+type ToolName string
 
 const (
-	DockerContainerAvailable Tool = "docker_container_available"
-	DockerContainerStart     Tool = "docker_container_start"
-	DockerExec               Tool = "docker_exec"
+	DockerExec ToolName = "docker_exec"
 )
