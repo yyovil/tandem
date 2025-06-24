@@ -12,13 +12,13 @@ import (
 )
 
 type Settings struct {
-	AgentID      string          `json:"agentId,omitempty"`
-	Description  string           `json:"description"`
-	Goal         string           `json:"goal"`
-	Instructions []string         `json:"instructions"`
-	Model        *providers.Model `json:"model,omitempty"`
-	Name         string           `json:"name,omitempty"`
-	Tools        []tools.Tool     `json:"tools"`
+	AgentID      string             `json:"agentId,omitempty"`
+	Description  string             `json:"description"`
+	Goal         string             `json:"goal"`
+	Instructions []string           `json:"instructions"`
+	Model        *providers.ModelId `json:"model,omitempty"`
+	Name         string             `json:"name,omitempty"`
+	Tools        []tools.Tool       `json:"tools"`
 }
 
 func (s *Settings) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -50,7 +50,7 @@ func NewSettings(path string) (settings Settings, err error) {
 	}
 
 	// TODO: concatenate name, description, goal and the instructions together to form the system instruction.
-	
+
 	return Settings{
 		Model: settings.Model,
 		Tools: settings.Tools,

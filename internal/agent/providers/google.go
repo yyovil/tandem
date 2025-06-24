@@ -8,11 +8,11 @@ import (
 	"google.golang.org/genai"
 )
 
-type GeminiProvider struct {
+type GoogleProvider struct {
 	Client *genai.Client
 }
 
-func NewGeminiProvider() (GeminiProvider, error) {
+func NewGoogleProvider() (GoogleProvider, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey: os.Getenv("GEMINI_API_KEY"),
@@ -20,11 +20,10 @@ func NewGeminiProvider() (GeminiProvider, error) {
 
 	if err != nil {
 		log.Println("Error creating Gemini client:", err.Error())
-		return GeminiProvider{}, err
+		return GoogleProvider{}, err
 	}
 
-	return GeminiProvider{
+	return GoogleProvider{
 		Client: client,
 	}, nil
 }
-

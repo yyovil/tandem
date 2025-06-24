@@ -7,9 +7,18 @@ import (
 // all this is kind of redundant rn, but it will make sense eventually when we will have multiple providers in place.
 type Part *genai.Part
 
-// we need to make all these Messages a bubble.
-type AddUserMsg struct{}
-type AddResponseMsg struct{}
-type ToolCallMsg struct{}
-type ToolCallCompletedMsg struct{}
-type ResponseCompletedMsg struct{}
+type Event string
+
+const (
+	ToolCall          Event = "TOOL CALL"
+	ToolCallCompleted Event = "TOOL CALL COMPLETED"
+	ResponseCompleted Event = "RESPONSE COMPLETED"
+	ToolCallError     Event = "TOOL CALL ERROR"
+	UserMessage       Event = "USER MESSAGE"
+)
+
+// TODO: make this as generic as possible to support all the possible events. if you want usage metadata, this is where you can add all that data.
+// NOTE: this is also consumed by the history bubble to render the history view on the terminal.
+type Message struct {
+	Event Event
+}

@@ -4,14 +4,13 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"google.golang.org/genai"
 )
 
 // NOTE: this is what the leftpane should look like after refactoring.
 type History struct {
-	Channel  chan genai.Content
+	Channel  chan Message
 	Width    int
-	Messages []tea.Msg
+	Messages []Message
 }
 
 func (h *History) Init() tea.Cmd {
@@ -19,24 +18,23 @@ func (h *History) Init() tea.Cmd {
 }
 
 func (h *History) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Implement your update logic here
 	switch msg := msg.(type) {
-	case AddUserMsg:
-		h.Messages = append(h.Messages, msg)
-		return h, h.Next()
+	case Message:
+		switch msg.Event {
+		case ResponseCompleted:
+		case ToolCall:
+			//TODO: handle all of them messages here eventwise.
+		}
 
-	case ResponseCompletedMsg:
-		return h, nil
 	}
 
 	return h, nil
 }
 
 func (h *History) View() string {
-	// Implement your view rendering here
 	var view strings.Builder
 	for _, message := range h.Messages {
-		// TODO: style them messages, render them, join them vertically.
+		// TODO: style them messages eventwise, render them, join them vertically.
 	}
 	return view.String()
 }
@@ -44,16 +42,18 @@ func (h *History) View() string {
 func NewHistory() *History {
 	return &History{
 		Width:    0,
-		Messages: []tea.Msg{},
-		Channel:  make(chan genai.Content),
+		Messages: []Message{},
+		Channel:  make(chan Message),
 	}
 }
 
-func (h *History) Next() tea.Cmd {
+func (h History) Next() tea.Cmd {
 	return func() tea.Msg {
 		content, ok := <-h.Channel
 		if !ok {
-			return ResponseCompletedMsg{}
+			return Message{
+				Event: ResponseCompleted,
+			}
 		}
 		return content
 	}
