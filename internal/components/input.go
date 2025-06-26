@@ -17,6 +17,7 @@ import (
 	"github.com/yyovil/tandem/internal/components/messages"
 	"github.com/yyovil/tandem/internal/layout"
 	// "github.com/yyovil/tandem/internal/utils"
+
 )
 
 // type Status string
@@ -45,7 +46,7 @@ type Input struct {
 
 type InputKeyMap struct {
 	ShowFilePicker,
-	// Send,
+	Send,
 	Quit,
 	PageDown,
 	PageUp,
@@ -59,10 +60,10 @@ var inputKeyMap = InputKeyMap{
 		key.WithKeys("ctrl+o"),
 		key.WithHelp("ctrl+o", "attach file"),
 	),
-	// Send: key.NewBinding(
-	// 	key.WithKeys("enter"),
-	// 	key.WithHelp("enter", "send message"),
-	// ),
+	Send: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "send message"),
+	),
 	Quit: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "quit"),
@@ -95,10 +96,6 @@ func (i Input) Init() tea.Cmd {
 	)
 }
 
-/* 
-TODO:
-1. handle the enter key msg to clear the input value.
-*/
 func (i Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -119,27 +116,21 @@ func (i Input) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			i.FilePicker.showFilePicker = true
 			i.textarea.Blur()
 
-		// case key.Matches(msg, inputKeyMap.Send):
-		// 	if !i.FilePicker.showFilePicker {
+		case key.Matches(msg, inputKeyMap.Send):
+			if !i.FilePicker.showFilePicker {
 
-		// 		if i.textarea.Value() == "" || i.status != Idle {
-		// 			return i, nil
-		// 		}
+				// if i.textarea.Value() == "" || i.status != Idle {
+				// 	return i, nil
+				// }
 
-		// 		i.userPrompt = i.textarea.Value()
-		// 		cmds = append(cmds, i.sendRunRequestCmd(), messages.AddUserMessageCmd(i.userPrompt, i.FilePicker.selectedFiles))
-		// 		i.leftpane.GotoBottom()
+				i.UserPrompt = i.textarea.Value()
+				i.textarea.Reset()
+				i.FilePicker.viewport.GotoTop()
+				i.FilePicker.filepicker.FileSelected = ""
+				return i, tea.Batch(cmds...)
+			}
 
-		// 		i.textarea.Reset()
-		// 		i.FilePicker.viewport.GotoTop()
-		// 		i.FilePicker.filepicker.FileSelected = ""
-
-		// 		return i, tea.Batch(cmds...)
-		// 	}
-
-		// 	_, cmd = i.FilePicker.Update(msg)
-		// 	cmds = append(cmds, cmd)
-		// 	return i, tea.Batch(cmds...)
+			i.FilePicker.Update(msg)
 
 		case key.Matches(msg, inputKeyMap.Quit):
 			if !i.textarea.Focused() {
@@ -369,7 +360,7 @@ func (i Input) footerView() string {
 		MarginBottom(1)
 
 	fpSelectedStyle := i.FilePicker.filepicker.Styles.Selected
-	selectedFiles := i.FilePicker.selectedFiles
+	selectedFiles := i.FilePicker.SelectedFiles
 
 	if len(selectedFiles) == 0 {
 		s.WriteString("No attachments")

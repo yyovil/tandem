@@ -20,7 +20,7 @@ type FilePicker struct {
 	filepicker     fp.Model
 	width          int
 	height         int
-	selectedFiles  []string //slice storing the path for the selected files.
+	SelectedFiles  []string //slice storing the path for the selected files.
 }
 
 type FilePickerKeyMap struct {
@@ -97,10 +97,10 @@ func (fpc *FilePicker) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				fpc.viewport.GotoTop()
 				fpc.viewport.Update(msg)
 			} else {
-				fpc.selectedFiles = append(fpc.selectedFiles, fpc.filepicker.FileSelected)
+				fpc.SelectedFiles = append(fpc.SelectedFiles, fpc.filepicker.FileSelected)
 			}
 		}
-		// log.Println("fpc.selectedFiles: ", fpc.selectedFiles)
+		// log.Println("fpc.SelectedFiles: ", fpc.SelectedFiles)
 	}
 
 	fpc.viewport, cmd = fpc.viewport.Update(msg)
@@ -130,7 +130,7 @@ func (fpc *FilePicker) View() string {
 
 
 func (fpc *FilePicker) GetSelectedFiles() (attachments []utils.Attachment, error error) {
-	if len(fpc.selectedFiles) > 0 {
+	if len(fpc.SelectedFiles) > 0 {
 		// fileStat, err := os.Stat(fs)
 
 		// if err != nil {
@@ -148,7 +148,7 @@ func (fpc *FilePicker) GetSelectedFiles() (attachments []utils.Attachment, error
 		// 	}, errors.New("can't get the selected dir")
 		// }
 
-		for _, selectedFile := range fpc.selectedFiles {
+		for _, selectedFile := range fpc.SelectedFiles {
 			content, err := os.ReadFile(selectedFile)
 			if err != nil {
 				log.Println("error reading a file:", err.Error())
@@ -161,7 +161,7 @@ func (fpc *FilePicker) GetSelectedFiles() (attachments []utils.Attachment, error
 				})
 			}
 		}
-		fpc.selectedFiles = nil
+		fpc.SelectedFiles = nil
 
 		return attachments, nil
 	} else {

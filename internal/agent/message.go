@@ -1,33 +1,41 @@
-package chat
+package agent
 
-import "github.com/yyovil/tandem/internal/agent/tools"
+import "github.com/yyovil/tandem/internal/tools"
 
-// NOTE: this is also consumed by the history bubble to render the history view on the terminal.
 type Message struct {
+	Role         Role
 	Type         Type
 	Part         Part
-	Attachment   Blob
+	Files        []Blob // NOTE: maybe we can support attachments through URIs in future.
 	FinishReason FinishReason
 	TokenCount   int32
 }
+
+type Role string
+
+const (
+	// NOTE: we only define RoleTool for tool Response
+	RoleTool      Role = "tool"
+	RoleUser      Role = "user"
+	RoleAssistant Role = "assistant"
+)
 
 type Type string
 
 const (
 	ToolCallMsg          Type = "tool_call"
-	ToolCallCompletedMsg Type = "tool_call_completed"
+	ToolCallErrorMsg     Type = "tool_call_error"
+	ToolResponseMsg      Type = "tool_response"
+	ResponseMsg          Type = "response"
 	ResponseCompletedMsg Type = "response_completed"
 	UserMessageMsg       Type = "user_message"
 )
 
+// NOTE: exactly one field within a Part should be set.
 type Part struct {
-	Text     string
-	ToolCall ToolCall
-}
-
-type ToolCall struct {
-	Name tools.ToolName
-	Args map[string]any
+	Text       string
+	ToolCalls  []tools.ToolCall
+	ToolResult []tools.ToolResponse
 }
 
 type Blob struct {
@@ -40,11 +48,8 @@ type Blob struct {
 type FinishReason string
 
 const (
-	BecauseEndTurn          FinishReason = "end_turn"
+	BecauseStop             FinishReason = "stop"
 	BecauseMaxTokens        FinishReason = "max_tokens"
-	BecauseToolUse          FinishReason = "tool_use"
-	BecauseCanceled         FinishReason = "canceled"
-	BecauseError            FinishReason = "error"
 	BecausePermissionDenied FinishReason = "permission_denied"
 	BecauseUnknown          FinishReason = "unknown"
 )

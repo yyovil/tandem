@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yyovil/tandem/internal/agent"
-	"github.com/yyovil/tandem/internal/chat"
 	"github.com/yyovil/tandem/internal/components"
 )
 
@@ -21,8 +20,7 @@ const (
 )
 
 type App struct {
-	chat    chat.Chat //in-memory chat history that is sent to the agent.
-	agent   agent.Agent
+	chat    agent.Chat //in-memory chat history that is sent to the agent.
 	status  Status
 	input   components.Input
 	dialog  components.Dialog
@@ -54,10 +52,7 @@ func (a *App) Init() tea.Cmd {
 }
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO: listen for messages from the agent.
-	var (
-		cmds []tea.Cmd
-	)
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -68,12 +63,24 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				1. update the chat history.
 				2. within a session there could be only one active agent.
 			*/
+
+			// updates the user prompt, collects all the attachments and clears the textarea.
 			input, cmd := a.input.Update(msg)
 			a.input = input.(components.Input)
 			cmds = append(cmds, cmd)
 
-			chatModel, cmd := a.chat.Update(msg)
-			a.chat = chatModel.(chat.Chat)
+			// update the chat history.
+			updateHistoryMsg := agent.Message{
+				Type:  agent.UserMessageMsg,
+				Files: []agent.Blob{},
+				Part: agent.Part{
+					Text: a.input.UserPrompt,
+				},
+				Role: agent.RoleUser,
+			}
+
+			chatModel, cmd := a.chat.Update(updateHistoryMsg)
+			a.chat = chatModel.(agent.Chat)
 			cmds = append(cmds, cmd)
 
 			return a, tea.Batch(cmds...)
@@ -87,7 +94,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, tea.Batch(cmds...)
 		}
 
-		// TODO: forward keystrokes to the input component
+		// TODO: forward keystrokes to the input bubble.
+		// TODO: forward rest of the messages to the chat bubble.
 	}
 
 	return a, nil
@@ -99,18 +107,14 @@ func (a *App) View() string {
 
 func NewApp() *tea.Program {
 
-	// TODO: load the user settings here. also define fallback defaults.
-
-	agent, err := agent.NewAgent()
-	if err != nil {
-		// TODO: produce better response for the user explaining the difficulty here.
-		return nil
-	}
-
+	ctx, cancel := context.WithCancel(context.Background())
 	app := &App{
-		status: Idle,
-		agent:  agent,
-		input:  components.NewInput(),
+		dialog:  components.NewDialog(),
+		status:  Idle,
+		chat:    agent.NewChat(),
+		input:   components.NewInput(),
+		context: ctx,
+		cancel:  cancel,
 	}
 
 	return tea.NewProgram(app, tea.WithAltScreen(), tea.WithMouseCellMotion())

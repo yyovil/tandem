@@ -1,4 +1,4 @@
-package chat
+package agent
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -6,4 +6,8 @@ import (
 
 type Stream interface {
 	Next() tea.Cmd
+}
+
+type StreamCreated struct {
+	Stream <-chan Message
 }

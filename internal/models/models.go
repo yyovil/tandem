@@ -1,4 +1,4 @@
-package providers
+package models
 
 type ModelId string
 
