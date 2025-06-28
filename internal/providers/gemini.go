@@ -69,8 +69,17 @@ func (g GeminiProvider) FromMessages(history []agent.Message) any {
 			}
 
 		case agent.RoleTool:
+			var response map[string]any
 			for _, toolResult := range message.Part.ToolResult {
-				content := genai.NewContentFromFunctionResponse(string(toolResult.Name), toolResult.Result, genai.RoleUser)
+				if toolResult.ToolCallResult.Error != nil {
+					response["error"] = toolResult.ToolCallResult.Error
+				}
+
+				if toolResult.ToolCallResult.Output != nil {
+					response = toolResult.ToolCallResult.Output
+				}
+
+				content := genai.NewContentFromFunctionResponse(string(toolResult.Name), response, genai.RoleUser)
 				providerHistory = append(providerHistory, content)
 			}
 		}

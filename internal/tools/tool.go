@@ -38,31 +38,24 @@ const (
 
 // NOTE: use this type when defining tool results from the agent response.
 type ToolResponse struct {
-	Status     Status
-	ToolCallId string
-	Name       ToolName
-	Result     ToolResponseResult
+	Status         Status
+	ToolCallId     string
+	Name           ToolName
+	ToolCallResult ToolCallResult
 }
 
-type ToolResponseResult struct {
+type ToolCallResult struct {
 	Error  error
 	Output map[string]any
 }
 
-var ToolRegistry = map[ToolName]RunTool{
+var ToolRegistry = map[ToolName]Tool{
 	DOCKER_EXEC: DockerExecTool,
-}
-
-/*
-NOTE: trying to trick the go compiler here to get past the typing system. also this never gets executed because we never going to have a tool in the registry with the value of type Tool. every tool will have its own type alias and it has to have a type alias because they have to implement their own kind of Execute method.
-*/
-func (t Tool) Execute(toolCallId string) ToolResponse {
-	return ToolResponse{}
 }
 
 func GetTool(name ToolName) (Tool, bool) {
 	tool, ok := ToolRegistry[name]
-	return tool.(Tool), ok
+	return tool, ok
 }
 
 type Param struct {

@@ -2,9 +2,8 @@ package tools
 
 import (
 	"context"
-	"strings"
+	"io"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
@@ -13,13 +12,13 @@ import (
 	"github.com/yyovil/tandem/internal/utils"
 )
 
-type DockerExec Tool
+type DockerExec ToolCall
 
 var dockerClient *docker.Client
 var kaliImage = "kali:withtools"
-var shell types.HijackedResponse
+var containerId string
 
-var DockerExecTool = DockerExec{
+var DockerExecTool = Tool{
 	Name:        DOCKER_EXEC,
 	Description: "Executes a command in a Docker container.",
 	Parameters: map[string]Param{
@@ -40,26 +39,23 @@ var DockerExecTool = DockerExec{
 }
 
 func (d DockerExec) Execute(toolCallId string) ToolResponse {
-	/*
-		STEPS:
-		2. spot a container if available, start one if not available assuming we already have the kali image.
-		3. exec the command and pass the arguments to it.
-		4. create a ToolResponse out of it and return it.
-	*/
-	var toolResponse ToolResponse
+	toolCallFailureResponse := ToolResponse{
+		Name:       DOCKER_EXEC,
+		ToolCallId: toolCallId,
+		Status:     Failure,
+	}
+	toolCallSuccessResponse := ToolResponse{
+		Name:       DOCKER_EXEC,
+		ToolCallId: toolCallId,
+		Status:     Success,
+	}
+
 	if dockerClient == nil {
 		var err error
 		dockerClient, err = docker.NewClientWithOpts(docker.FromEnv, docker.WithAPIVersionNegotiation())
 		if err != nil {
-			toolResponse = ToolResponse{
-				Name:       DOCKER_EXEC,
-				ToolCallId: toolCallId,
-				Status:     Failure,
-				Result: ToolResponseResult{
-					Error: errors.Wrap(err, "failed to create docker client"),
-				},
-			}
-			return toolResponse
+			toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to create docker client")
+			return toolCallFailureResponse
 		}
 	}
 
@@ -76,68 +72,42 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 
 	summarySlice, err := dockerClient.ContainerList(ctx, listOptions)
 	if err != nil {
-		toolResponse = ToolResponse{
-			Name:       DOCKER_EXEC,
-			ToolCallId: toolCallId,
-			Status:     Failure,
-			Result: ToolResponseResult{
-				Error: errors.Wrap(err, "failed to list docker containers"),
-			},
-		}
-		return toolResponse
+		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to list docker containers")
+		return toolCallFailureResponse
 	}
 
+	// NOTE: the whole point of going through the summary is to spot a container with a running bash exec process. so you break out soon as you found yourself one.
 	for _, summary := range summarySlice {
-		// TODO: warn if bind mounts aren't set up. this maybe because the container is not created and ran by tandem.
 		for _, mountPoint := range summary.Mounts {
 			// NOTE: this works because we aren't going to have any other kind of mounts.
 			if mountPoint.Type != mount.TypeBind {
-				toolResponse = ToolResponse{
-					Name:       DOCKER_EXEC,
-					ToolCallId: toolCallId,
-					Status:     Failure,
-					Result: ToolResponseResult{
-						Error: errors.New("bind mount not set up for container " + summary.ID),
-					},
-				}
-				return toolResponse
+				toolCallFailureResponse.ToolCallResult.Error = errors.New("bind mount not set up for container " + summary.ID)
+				return toolCallFailureResponse
 			}
 		}
 
-		// after this switch expression, we assume that we have shell session for us.
-		switch summary.Status {
-		case "paused":
-			// unpause it.
+		// NOTE: after this switch expression, we assume that we have a container session for us.
+		switch summary.State {
+		case container.StateRunning:
+			containerId = summary.ID
+		case container.StatePaused:
 			if err := dockerClient.ContainerUnpause(ctx, summary.ID); err != nil {
-				toolResponse = ToolResponse{
-					Name:       DOCKER_EXEC,
-					ToolCallId: toolCallId,
-					Status:     Failure,
-					Result: ToolResponseResult{
-						Error: errors.Wrap(err, "failed to unpause docker container"),
-					},
+				toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to unpause docker container")
+				return toolCallFailureResponse
+			}
+			containerId = summary.ID
+
+		case container.StateExited, container.StateCreated:
+			{
+				if err := dockerClient.ContainerStart(ctx, summary.ID, container.StartOptions{}); err != nil {
+					toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to start docker container")
+					return toolCallFailureResponse
 				}
-				return toolResponse
+				containerId = summary.ID
 			}
 
-		case "exited",
-			"created":
-			{
-				// TODO: start it.
-				if err := dockerClient.ContainerStart(ctx, summary.ID, container.StartOptions{}); err != nil {
-					toolResponse = ToolResponse{
-						Name:       DOCKER_EXEC,
-						ToolCallId: toolCallId,
-						Status:     Failure,
-						Result: ToolResponseResult{
-							Error: errors.Wrap(err, "failed to start docker container"),
-						},
-					}
-					return toolResponse
-				}
-			}
 		default:
-			// create a new container using the kali image.
+			// TODO: where are the bind mounts?
 			config := &container.Config{
 				Image: kaliImage,
 				Tty:   true,
@@ -146,44 +116,80 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 			}
 			resp, err := dockerClient.ContainerCreate(ctx, config, nil, nil, nil, "")
 			if err != nil {
-				toolResponse = ToolResponse{
-					Name:       DOCKER_EXEC,
-					ToolCallId: toolCallId,
-					Status:     Failure,
-					Result: ToolResponseResult{
-						Error: errors.Wrap(err, "failed to create docker container"),
-					},
-				}
-				return toolResponse
+				toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to create docker container")
+				return toolCallFailureResponse
 			}
 
 			if err := dockerClient.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-				toolResponse = ToolResponse{
-					Name:       DOCKER_EXEC,
-					ToolCallId: toolCallId,
-					Status:     Failure,
-					Result: ToolResponseResult{
-						Error: errors.Wrap(err, "failed to start docker container"),
-					},
-				}
-				return toolResponse
+				toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to start docker container")
+				return toolCallFailureResponse
 			}
+
+			containerId = resp.ID
 		}
 
-		var commandLine []string
-		for param, value := range d.Parameters {
-			if param == "command" {
-					commandLine = append(commandLine, value)
-			}
-
-			if param == "args" {
-
-			}
-
+		if containerId != "" {
+			break
 		}
-		shell.Conn.Write([]byte(strings.Join(commandLine, " ")))
-
 	}
 
-	return toolResponse
+	var commandLine []string
+	for param, value := range d.Args {
+		if param == "command" {
+			commandLine = append(commandLine, value.(string))
+		}
+		if param == "args" {
+			if args, ok := value.([]any); ok {
+				for _, arg := range args {
+					if argStr, ok := arg.(string); ok {
+						commandLine = append(commandLine, argStr)
+					}
+				}
+			}
+		}
+	}
+
+	execOptions := container.ExecOptions{
+		Cmd:          commandLine,
+		AttachStdin:  true,
+		AttachStderr: true,
+		AttachStdout: true,
+		Tty:          true,
+		// NOTE: you may want to set the console size here. that would get you nice formatted output string to render in the chat view.
+	}
+
+	// NOTE: you won't be able to run tui apps then like this. because you are simply creating exec processes on fly inside the bash shell you have got running in the container.
+	execCreateResponse, err := dockerClient.ContainerExecCreate(ctx, containerId, execOptions)
+	if err != nil {
+		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to create an exec process running a bash session in the docker container")
+		return toolCallFailureResponse
+	}
+
+	hijackedResponse, err := dockerClient.ContainerExecAttach(ctx, execCreateResponse.ID, container.ExecAttachOptions{})
+	if err != nil {
+		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to attach to exec process in the docker container")
+		return toolCallFailureResponse
+	}
+	defer hijackedResponse.Close()
+
+	err = dockerClient.ContainerExecStart(ctx, execCreateResponse.ID, container.ExecStartOptions{})
+	if err != nil {
+		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to start exec process in the docker container")
+		return toolCallFailureResponse
+	}
+
+	execInspect, err := dockerClient.ContainerExecInspect(ctx, execCreateResponse.ID)
+	if err != nil {
+		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to inspect exec process in the docker container")
+		return toolCallFailureResponse
+	}
+
+	output, _ := io.ReadAll(hijackedResponse.Reader)
+
+	toolCallSuccessResponse.ToolCallResult.Output = map[string]any{
+		"output":    string(output),
+		"exit_code": execInspect.ExitCode,
+	}
+
+	return toolCallSuccessResponse
 }

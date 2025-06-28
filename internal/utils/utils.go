@@ -27,3 +27,17 @@ func UnmarshalJSONToMap(data string) (map[string]any, error) {
 	err := json.Unmarshal([]byte(data), &result)
 	return result, err
 }
+
+type Type string
+
+// OpenAPI 3.0 Specified types.
+const (
+	TypeUnspecified Type = "TYPE_UNSPECIFIED"
+	TypeString      Type = "STRING"
+	TypeNumber      Type = "NUMBER"
+	TypeInteger     Type = "INTEGER"
+	TypeBoolean     Type = "BOOLEAN"
+	TypeArray       Type = "ARRAY"
+	TypeObject      Type = "OBJECT"
+	TypeNULL        Type = "NULL"
+)
