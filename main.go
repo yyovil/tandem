@@ -1,20 +1,14 @@
 package main
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yyovil/tandem/internal/app"
-	"log"
-	"os"
+	"github.com/yyovil/tandem/internal/cmd"
+	"github.com/yyovil/tandem/internal/logging"
 )
 
 func main() {
-	if _, err := tea.LogToFile("debug.log", "debug"); err != nil {
-		os.Exit(1)
-	}
+	defer logging.RecoverPanic("main", func() {
+		logging.ErrorPersist("Application terminated due to unhandled panic")
+	})
 
-	app := app.NewApp()
-	if _, err := app.Run(); err != nil {
-		log.Println("Error running program:", err.Error())
-		os.Exit(1)
-	}
+	cmd.Execute()
 }

@@ -21,6 +21,7 @@
             gotools
             vagrant
             starship
+            sqlc
 
             # TODO:
             # docker_25
