@@ -67,9 +67,7 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
-        "docker_exec",
-        "docker_container_start",
-        "docker_container_available"
+        "docker_exec"
       ]
     }
   }

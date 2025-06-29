@@ -21,16 +21,18 @@
     "/nix/store/fwfahpczwpwbfnls2w7hj4vi4aa557r7-ruff-0.11.5/bin/ruff"
   ],
   "terminal.integrated.profiles.linux": {
-    "nix-develop": {
+    "nix devShell": {
+      "overrideName": true,
       "path": "nix",
       "args": [
-        "develop"
+        "develop",
+        "--quiet",
       ],
-      "icon": "terminal-linux",
-      "color": "terminal.ansiMagenta",
-    }
+      "icon": "terminal",
+      "color": "terminal.ansiBlue",
+    },
   },
-  "terminal.integrated.defaultProfile.linux": "nix-develop",
+  "terminal.integrated.defaultProfile.linux": "nix devShell",
   "terminal.integrated.cwd": "${workspaceFolder}",
   "go.formatTool": "gofmt",
   "editor.formatOnSave": true,

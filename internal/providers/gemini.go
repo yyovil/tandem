@@ -37,7 +37,7 @@ func (g GeminiProvider) FromMessages(history []agent.Message) any {
 	var providerHistory []*genai.Content
 
 	for _, message := range history {
-		var content *genai.Content
+		content := &genai.Content{}
 		switch message.Role {
 		case agent.RoleUser:
 			content.Role = genai.RoleUser
@@ -69,14 +69,14 @@ func (g GeminiProvider) FromMessages(history []agent.Message) any {
 			}
 
 		case agent.RoleTool:
-			var response map[string]any
+			response := make(map[string]any, 1)
 			for _, toolResult := range message.Part.ToolResult {
 				if toolResult.ToolCallResult.Error != nil {
 					response["error"] = toolResult.ToolCallResult.Error
 				}
 
-				if toolResult.ToolCallResult.Output != nil {
-					response = toolResult.ToolCallResult.Output
+				if toolResult.ToolCallResult.Output != "" {
+					response["output"] = toolResult.ToolCallResult.Output
 				}
 
 				content := genai.NewContentFromFunctionResponse(string(toolResult.Name), response, genai.RoleUser)
@@ -124,6 +124,7 @@ func (g GeminiProvider) GetStream(ctx context.Context, messages []agent.Message,
 		for _, part := range lastMessage.Parts {
 			parts = append(parts, *part)
 		}
+
 		for content, err := range chat.SendMessageStream(ctx, parts...) {
 			if err != nil {
 				log.Println("error occured while SendMessageStream: ", err)
@@ -132,6 +133,7 @@ func (g GeminiProvider) GetStream(ctx context.Context, messages []agent.Message,
 			message := g.ToMessage(*content.Candidates[0])
 			messageChan <- message
 		}
+
 	}()
 
 	return messageChan

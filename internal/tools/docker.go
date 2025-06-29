@@ -38,12 +38,22 @@ var DockerExecTool = Tool{
 	Required: []string{"command"},
 }
 
+func (d DockerExec) NewClient() (*docker.Client, error) {
+	client, err := docker.NewClientWithOpts(docker.FromEnv, docker.WithAPIVersionNegotiation())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create docker client")
+	}
+
+	return client, nil
+}
+
 func (d DockerExec) Execute(toolCallId string) ToolResponse {
 	toolCallFailureResponse := ToolResponse{
 		Name:       DOCKER_EXEC,
 		ToolCallId: toolCallId,
 		Status:     Failure,
 	}
+
 	toolCallSuccessResponse := ToolResponse{
 		Name:       DOCKER_EXEC,
 		ToolCallId: toolCallId,
@@ -52,9 +62,8 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 
 	if dockerClient == nil {
 		var err error
-		dockerClient, err = docker.NewClientWithOpts(docker.FromEnv, docker.WithAPIVersionNegotiation())
-		if err != nil {
-			toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to create docker client")
+		if dockerClient, err = d.NewClient(); err != nil {
+			toolCallFailureResponse.ToolCallResult.Error = err
 			return toolCallFailureResponse
 		}
 	}
@@ -76,7 +85,6 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 		return toolCallFailureResponse
 	}
 
-	// NOTE: the whole point of going through the summary is to spot a container with a running bash exec process. so you break out soon as you found yourself one.
 	for _, summary := range summarySlice {
 		for _, mountPoint := range summary.Mounts {
 			// NOTE: this works because we aren't going to have any other kind of mounts.
@@ -86,7 +94,6 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 			}
 		}
 
-		// NOTE: after this switch expression, we assume that we have a container session for us.
 		switch summary.State {
 		case container.StateRunning:
 			containerId = summary.ID
@@ -109,9 +116,16 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 		default:
 			// TODO: where are the bind mounts?
 			config := &container.Config{
-				Image: kaliImage,
-				Tty:   true,
-				Cmd:   []string{"/bin/bash"},
+				Image:        kaliImage,
+				Tty:          true,
+				Cmd:          []string{"/bin/bash"},
+				AttachStdin:  true,
+				AttachStdout: true,
+				AttachStderr: true,
+				OpenStdin:    true,
+
+				StdinOnce: true,
+				Shell:     []string{"/bin/bash"},
 				// continue... you were thinking about the stdin, stdout and stderr.
 			}
 			resp, err := dockerClient.ContainerCreate(ctx, config, nil, nil, nil, "")
@@ -134,16 +148,14 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 	}
 
 	var commandLine []string
-	for param, value := range d.Args {
-		if param == "command" {
+	for key, value := range d.Args {
+		if key == "command" {
 			commandLine = append(commandLine, value.(string))
 		}
-		if param == "args" {
-			if args, ok := value.([]any); ok {
+		if key == "args" && value != nil {
+			if args, ok := value.([]string); ok {
 				for _, arg := range args {
-					if argStr, ok := arg.(string); ok {
-						commandLine = append(commandLine, argStr)
-					}
+					commandLine = append(commandLine, arg)
 				}
 			}
 		}
@@ -158,7 +170,6 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 		// NOTE: you may want to set the console size here. that would get you nice formatted output string to render in the chat view.
 	}
 
-	// NOTE: you won't be able to run tui apps then like this. because you are simply creating exec processes on fly inside the bash shell you have got running in the container.
 	execCreateResponse, err := dockerClient.ContainerExecCreate(ctx, containerId, execOptions)
 	if err != nil {
 		toolCallFailureResponse.ToolCallResult.Error = errors.Wrap(err, "failed to create an exec process running a bash session in the docker container")
@@ -184,12 +195,24 @@ func (d DockerExec) Execute(toolCallId string) ToolResponse {
 		return toolCallFailureResponse
 	}
 
-	output, _ := io.ReadAll(hijackedResponse.Reader)
+	output, _ := io.ReadAll(hijackedResponse.Conn)
+	exitCode := execInspect.ExitCode
 
-	toolCallSuccessResponse.ToolCallResult.Output = map[string]any{
-		"output":    string(output),
-		"exit_code": execInspect.ExitCode,
+	if exitCode != 0 {
+		toolCallFailureResponse.ToolCallResult.Error = errors.New(string(output))
+		return toolCallFailureResponse
 	}
 
+	toolCallSuccessResponse.ToolCallResult.Output = string(output)
+
 	return toolCallSuccessResponse
+}
+
+// TODO: implement the cleanup func.
+func (d DockerExec) CleanUp() {
+	/*
+		STEPS:
+		1. Stop all the running containers respectively.
+		2. close all the connections to the docker client.
+	*/
 }

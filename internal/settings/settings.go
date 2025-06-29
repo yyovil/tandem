@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"os"
-
 	"github.com/yyovil/tandem/internal/models"
 	"github.com/yyovil/tandem/internal/tools"
+	"log"
+	"os"
 )
 
 type Settings struct {
@@ -46,7 +45,7 @@ func NewSettings(path string) (settings Settings, err error) {
 
 func (s Settings) GetSystemPrompt() string {
 	return fmt.Sprintf(`
-	You are an AI Agent that helps users with their tasks. You adhere strictly to the following guidelines:
+	You are an AI Agent that helps users with their tasks. You must adhere strictly to the following guidelines:
 	<description>%s</description>
 	<your_goal>%s</your_goal>
 	<instructions>%s</instructions>

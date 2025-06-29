@@ -14,6 +14,7 @@ func main() {
 
 	app := app.NewApp()
 	if _, err := app.Run(); err != nil {
+		// TODO: Notify the user about the error and gracefully exit.
 		log.Println("Error running program:", err.Error())
 		os.Exit(1)
 	}

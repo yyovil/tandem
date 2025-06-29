@@ -2,9 +2,6 @@ package agent
 
 import (
 	"context"
-	"log"
-	"os"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yyovil/tandem/internal/settings"
 	"github.com/yyovil/tandem/internal/tools"
@@ -34,15 +31,17 @@ type Provider interface {
 // func NewProvider() (Provider, error) {}
 
 type Agent struct {
+	// provider behind the agent powering its intelligence.
 	Provider Provider
+	// agent settings that you could provide using a json file. here's the schema for it: https://github.com/yyovil/tandem/blob/fuck_agno/agents/agent.schema.json
 	Settings *settings.Settings
 }
 
 // Executes the agent's logic, generating content based on the chat history and user settings
 func (a Agent) Run(ctx context.Context, history []Message) tea.Cmd {
 	/*
-		TODO:
-		1. check if there's a chat session available already.
+		!TODO:
+		1. check if there's a chat session available already. (waiting for session persistence)
 	*/
 	return func() tea.Msg {
 		return StreamCreated{
@@ -53,25 +52,12 @@ func (a Agent) Run(ctx context.Context, history []Message) tea.Cmd {
 
 func NewAgent(settings settings.Settings) (Agent, error) {
 	// provider, err := NewProvider()
-
 	// if err != nil {
 	// 	return Agent{}, err
 	// }
-
-	file, err := os.Open("path/to/file.json")
-	if err != nil {
-		// handle error
-		log.Println("Error opening file:", err.Error())
-	}
-	defer file.Close()
 
 	return Agent{
 		Settings: &settings,
 		// Provider: provider,
 	}, nil
 }
-
-/*
-TODO:
-1. Take the config from the internal/agents and build the agents from the definition.
-*/

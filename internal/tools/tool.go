@@ -19,6 +19,9 @@ type Tool struct {
 }
 
 type RunTool interface {
+	// closes clients, stops all them respectively running containers.
+	CleanUp()
+	// executes llm predicted cmds in a docker container.
 	Execute(toolCallId string) ToolResponse
 }
 
@@ -46,7 +49,7 @@ type ToolResponse struct {
 
 type ToolCallResult struct {
 	Error  error
-	Output map[string]any
+	Output string
 }
 
 var ToolRegistry = map[ToolName]Tool{
@@ -60,7 +63,7 @@ func GetTool(name ToolName) (Tool, bool) {
 
 type Param struct {
 	Description string
-	Type        utils.Type     // TODO: make it more restrictive to OpenAPI 3.0 types
+	Type        utils.Type
 	Properties  ToolParameters // NOTE: properties are only required when used with Type "object".
 	Items       *Param         // NOTE: items are only required when used with Type "array" any ways.
 }

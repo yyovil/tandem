@@ -22,15 +22,14 @@ func Clamp(value, min, max int) int {
 	return value
 }
 
-func UnmarshalJSONToMap(data string) (map[string]any, error) {
-	var result map[string]any
-	err := json.Unmarshal([]byte(data), &result)
+func UnmarshalJSONToMap(data string) (result map[string]any, err error) {
+	err = json.Unmarshal([]byte(data), &result)
 	return result, err
 }
 
 type Type string
 
-// OpenAPI 3.0 Specified types.
+// OpenAPI 3.0 Specified type.
 const (
 	TypeUnspecified Type = "TYPE_UNSPECIFIED"
 	TypeString      Type = "STRING"
