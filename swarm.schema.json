@@ -1,0 +1,282 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Swarm Configuration Schema for Tandem",
+  "description": "JSON schema for declarative swarm configuration in Tandem",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "The schema to verify this agents configuration against",
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "contextPaths": {
+      "default": ".tandem/RoE.md",
+      "description": "Context path of the file stating the rules of engagement",
+      "type": "string"
+    },
+    "directory": {
+      "description": "directory where all the data generated during the engagement will be stored by the swarm. by default, current working directory.",
+      "type": "string",
+      "minLength": 1
+    },
+    "agents": {
+      "type": "object",
+      "description": "Collection of agents indexed by their names. Use the predefined agent types below or create your own custom agents.",
+      "properties": {
+        "orchestrator": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Orchestrator (Default)",
+          "description": "Coordinates and manages the overall penetration testing workflow"
+        },
+        "project_manager": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Project Manager (Default)",
+          "description": "Manages project timeline, resources, and deliverables"
+        },
+        "reconnoiter": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Reconnoiter (Default)",
+          "description": "Performs reconnaissance and information gathering"
+        },
+        "exploiter": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Exploiter (Default)",
+          "description": "Executes exploitation attempts on discovered vulnerabilities"
+        },
+        "vulnerability_assessor": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Vulnerability Assessor (Default)",
+          "description": "Identifies and assesses security vulnerabilities"
+        },
+        "summarizer": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Summarizer (Default)",
+          "description": "Creates reports and summaries of findings"
+        },
+        "task": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Task (Default)",
+          "description": "Handles specific task execution"
+        },
+        "title": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Title (Default)",
+          "description": "Manages titles and naming conventions"
+        },
+        "custom_agent_example": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "✨ Create Your Own Agent ✨",
+          "description": "You can create custom agents! Replace 'custom_agent_example' with any name like: web_scanner, network_analyzer, payload_generator, etc."
+        }
+      },
+      "additionalProperties": {
+        "allOf": [
+          {
+            "$ref": "#/definitions/Agent"
+          }
+        ],
+        "title": "Custom Agent",
+        "description": "Define your own agent with any name (e.g., 'web_scanner', 'network_analyzer', 'custom_exploit_tool')"
+      }
+    },
+    "providers": {
+      "additionalProperties": {
+        "description": "Provider configuration",
+        "properties": {
+          "apiKey": {
+            "description": "API key for the provider",
+            "type": "string"
+          },
+          "disabled": {
+            "default": false,
+            "description": "Whether the provider is disabled",
+            "type": "boolean"
+          },
+          "provider": {
+            "description": "Provider type",
+            "enum": [
+              "anthropic",
+              "openai",
+              "gemini",
+              "groq",
+              "openrouter",
+              "vertexai",
+              "copilot"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "description": "LLM provider configurations",
+      "type": "object"
+    }
+  },
+  "required": [
+    "agents"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "Agent": {
+      "type": "object",
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "description": "Unique identifier for the agent"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name for the agent"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the agent's purpose and capabilities"
+        },
+        "goal": {
+          "type": "string",
+          "description": "Primary goal or objective of the agent"
+        },
+        "model": {
+          "type": "string",
+          "description": "The AI model to use for this agent",
+          "enum": [
+            "gpt-4.1",
+            "llama-3.3-70b-versatile",
+            "claude-3-opus",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "o1",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "claude-3.5-haiku",
+            "o4-mini",
+            "grok-3-beta",
+            "o3-mini",
+            "qwen-qwq",
+            "o1-mini",
+            "gpt-4.1-mini",
+            "gpt-4.5-preview",
+            "gpt-4.1-nano",
+            "deepseek-r1-distill-llama-70b",
+            "claude-3-haiku",
+            "o3",
+            "gemini-2.0-flash-lite",
+            "grok-3-mini-fast-beta",
+            "claude-4-sonnet",
+            "grok-3-fast-beta",
+            "claude-3.5-sonnet",
+            "grok-3-mini-beta",
+            "claude-3.7-sonnet",
+            "gemini-2.0-flash",
+            "vertexai.gemini-2.5-flash",
+            "vertexai.gemini-2.5",
+            "o1-pro",
+            "gemini-2.5",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "gemini-2.5-flash",
+            "claude-4-opus",
+            "copilot.gpt-4o",
+            "copilot.gpt-4o-mini",
+            "copilot.gpt-4.1",
+            "copilot.claude-3.5-sonnet",
+            "copilot.claude-3.7-sonnet",
+            "copilot.claude-sonnet-4",
+            "copilot.o1",
+            "copilot.o3-mini",
+            "copilot.o4-mini",
+            "copilot.gemini-2.0-flash",
+            "copilot.gemini-2.5-pro",
+            "moonshotai/kimi-k2-instruct"
+          ]
+        },
+        "maxTokens": {
+          "type": "integer",
+          "description": "Maximum number of tokens for the agent",
+          "minimum": 1
+        },
+        "reasoningEffort": {
+          "type": "string",
+          "description": "Reasoning effort level for models that support it",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "instructions": {
+          "type": "array",
+          "description": "Array of instruction strings that define the agent's behavior",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "description": "Array of tools available to the agent",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/Tool"
+          }
+        }
+      },
+      "required": [
+        "agentId",
+        "goal",
+        "description",
+        "instructions"
+      ],
+      "additionalProperties": false,
+      "reasoningEffort": {
+        "description": "Reasoning effort for models that support it (OpenAI, Anthropic)",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "type": "string"
+      }
+    },
+    "Tool": {
+      "type": "string",
+      "description": "Tool definition for agent capabilities",
+      "enum": [
+        "docker_exec"
+      ]
+    }
+  }
+}

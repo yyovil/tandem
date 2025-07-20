@@ -4,5 +4,8 @@
 .vagrant
 .ruff_cache
 .config
-tui/debug.log
+*.log
 result
+.tandem/data
+tandem
+.opencode

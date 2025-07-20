@@ -16,14 +16,12 @@
 
         mkShell {
           buildInputs = [
-            python311
-            ruff
-            uv
             go
             gopls
             gotools
             vagrant
             starship
+            sqlc
 
             # TODO:
             # docker_25
@@ -36,8 +34,6 @@
             export GOPATH="$PWD/.go"
             export PATH="$GOPATH/bin:$PATH"
             export GOBIN="$GOPATH/bin"
-            source agents/.venv/bin/activate
-            source monorepo.sh
             eval "$(starship init bash)"
 
             # TODO:
