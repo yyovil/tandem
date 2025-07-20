@@ -1,5 +1,5 @@
 {
-  "$schema": "https://github.com/yyovil/tandem/swarm.schema.json",
+  "$schema": "https://yyovil.github.io/tandem/swarm.schema.json",
   "providers": {
     "groq": {
       "apiKey": "${GROQ_API_KEY}"
