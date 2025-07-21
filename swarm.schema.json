@@ -125,6 +125,18 @@
       }
     },
     "providers": {
+      "propertyNames": {
+        "enum": [
+          "anthropic",
+          "openai",
+          "gemini",
+          "groq",
+          "openrouter",
+          "vertexai",
+          "copilot",
+          "xai"
+        ]
+      },
       "additionalProperties": {
         "description": "Provider configuration",
         "properties": {
@@ -146,7 +158,8 @@
               "groq",
               "openrouter",
               "vertexai",
-              "copilot"
+              "copilot",
+              "xai"
             ],
             "type": "string"
           }
