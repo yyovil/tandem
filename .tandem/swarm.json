@@ -1,8 +1,30 @@
 {
   "$schema": "https://yyovil.github.io/tandem/swarm.schema.json",
+  "debug": true,
   "providers": {
     "groq": {
       "apiKey": "${GROQ_API_KEY}"
+    },
+    "anthropic": {
+      "apiKey": "${ANTHROPIC_API_KEY}"
+    },
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}"
+    },
+    "gemini": {
+      "apiKey": "${GEMINI_API_KEY}"
+    },
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}"
+    },
+    "vertexai": {
+      "apiKey": "${VERTEXAI_API_KEY}"
+    },
+    "copilot": {
+      "apiKey": "${COPILOT_API_KEY}"
+    },
+    "xai": {
+      "apiKey": "${XAI_API_KEY}"
     }
   },
   "agents": {
@@ -23,7 +45,7 @@
       ]
     },
     "summarizer": {
-      "name": "Conversation Summarizer",
+      "name": "summarizer",
       "agentId": "summarizer",
       "description": "An AI assistant specialized in summarizing conversations and providing context for continuing discussions",
       "goal": "Provide comprehensive yet concise summaries of conversations to maintain context and assist in workflow continuity",
@@ -40,10 +62,9 @@
       ]
     },
     "title": {
-      "name": "Title Generator",
+      "name": "title",
       "agentId": "title",
-      "model": "copilot.gpt-4o-mini",
-      "description": "An AI assistant specialized in generating concise titles for conversations based on user messages",
+      "description": "An AI assistant specialized in generating concise titles for conversations based on a user message",
       "goal": "Generate one liner titles based on the first user message.",
       "instructions": [
         "Use the first user message to generate a one liner.",
