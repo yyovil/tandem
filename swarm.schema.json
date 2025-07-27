@@ -203,40 +203,52 @@
           "type": "string",
           "description": "The AI model to use for this agent",
           "enum": [
+
             "gpt-4.1",
-            "llama-3.3-70b-versatile",
-            "claude-3-opus",
             "gpt-4o",
             "gpt-4o-mini",
-            "o1",
-            "meta-llama/llama-4-maverick-17b-128e-instruct",
-            "claude-3.5-haiku",
-            "o4-mini",
-            "grok-3-beta",
-            "o3-mini",
-            "qwen-qwq",
-            "o1-mini",
             "gpt-4.1-mini",
             "gpt-4.5-preview",
             "gpt-4.1-nano",
-            "deepseek-r1-distill-llama-70b",
-            "claude-3-haiku",
-            "o3",
-            "gemini-2.0-flash-lite",
-            "grok-3-mini-fast-beta",
-            "claude-4-sonnet",
-            "grok-3-fast-beta",
-            "claude-3.5-sonnet",
-            "grok-3-mini-beta",
-            "claude-3.7-sonnet",
-            "gemini-2.0-flash",
-            "vertexai.gemini-2.5-flash",
-            "vertexai.gemini-2.5",
+            "o1",
+            "o1-mini",
             "o1-pro",
-            "gemini-2.5",
-            "meta-llama/llama-4-scout-17b-16e-instruct",
-            "gemini-2.5-flash",
+            "o3",
+            "o3-mini",
+            "o4-mini",
+            
+            "claude-3-opus",
+            "claude-3.5-haiku",
+            "claude-3-haiku",
+            "claude-4-sonnet",
+            "claude-3.5-sonnet",
+            "claude-3.7-sonnet",
             "claude-4-opus",
+            
+            "llama-3.3-70b-versatile",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "deepseek-r1-distill-llama-70b",
+            "moonshotai/kimi-k2-instruct",
+            "qwen-qwq",
+
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+
+            "vertexai.gemini-2.5-flash",
+            "vertexai.gemini-2.5-pro",
+            "vertexai.gemini-2.5-flash-lite",
+
+            "grok-3-beta",
+            "grok-3-mini-fast-beta",
+            "grok-3-fast-beta",
+            "grok-3-mini-beta",
+
+
+
             "copilot.gpt-4o",
             "copilot.gpt-4o-mini",
             "copilot.gpt-4.1",
@@ -247,8 +259,7 @@
             "copilot.o3-mini",
             "copilot.o4-mini",
             "copilot.gemini-2.0-flash",
-            "copilot.gemini-2.5-pro",
-            "moonshotai/kimi-k2-instruct"
+            "copilot.gemini-2.5-pro"
           ]
         },
         "maxTokens": {
@@ -302,7 +313,8 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
-        "docker_exec"
+        "docker_cli",
+        "agent_tool"
       ]
     }
   }
