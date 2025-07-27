@@ -30,7 +30,7 @@
     },
     "agents": {
       "type": "object",
-      "description": "Collection of agents indexed by their names. Use the predefined agent types below or create your own custom agents.",
+      "description": "ai agents working in tandem.",
       "properties": {
         "orchestrator": {
           "allOf": [
@@ -38,16 +38,16 @@
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Orchestrator (Default)",
-          "description": "Coordinates and manages the overall penetration testing workflow"
+          "title": "Orchestrator (your only point of contact)",
+          "description": "Interprets and assigns the penetration testing tasks to subagents with respective expertise."
         },
-        "project_manager": {
+        "reporter": {
           "allOf": [
             {
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Project Manager (Default)",
+          "title": "reporter",
           "description": "Manages project timeline, resources, and deliverables"
         },
         "reconnoiter": {
@@ -56,7 +56,7 @@
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Reconnoiter (Default)",
+          "title": "Reconnoiter",
           "description": "Performs reconnaissance and information gathering"
         },
         "exploiter": {
@@ -65,16 +65,16 @@
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Exploiter (Default)",
+          "title": "Exploiter",
           "description": "Executes exploitation attempts on discovered vulnerabilities"
         },
-        "vulnerability_assessor": {
+        "vulnerability_scanner": {
           "allOf": [
             {
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Vulnerability Assessor (Default)",
+          "title": "vulnerability scanner",
           "description": "Identifies and assesses security vulnerabilities"
         },
         "summarizer": {
@@ -83,17 +83,8 @@
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Summarizer (Default)",
-          "description": "Creates reports and summaries of findings"
-        },
-        "task": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/Agent"
-            }
-          ],
-          "title": "Task (Default)",
-          "description": "Handles specific task execution"
+          "title": "Summarizer",
+          "description": "summarizes the whole session succintly to provide the context till a point during the engagement to continue based on the current findings."
         },
         "title": {
           "allOf": [
@@ -101,27 +92,9 @@
               "$ref": "#/definitions/Agent"
             }
           ],
-          "title": "Title (Default)",
-          "description": "Manages titles and naming conventions"
-        },
-        "custom_agent_example": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/Agent"
-            }
-          ],
-          "title": "✨ Create Your Own Agent ✨",
-          "description": "You can create custom agents! Replace 'custom_agent_example' with any name like: web_scanner, network_analyzer, payload_generator, etc."
+          "title": "Title",
+          "description": "generates a title for a session based on the first message within a session."
         }
-      },
-      "additionalProperties": {
-        "allOf": [
-          {
-            "$ref": "#/definitions/Agent"
-          }
-        ],
-        "title": "Custom Agent",
-        "description": "Define your own agent with any name (e.g., 'web_scanner', 'network_analyzer', 'custom_exploit_tool')"
       }
     },
     "providers": {
@@ -148,20 +121,6 @@
             "default": false,
             "description": "Whether the provider is disabled",
             "type": "boolean"
-          },
-          "provider": {
-            "description": "Provider type",
-            "enum": [
-              "anthropic",
-              "openai",
-              "gemini",
-              "groq",
-              "openrouter",
-              "vertexai",
-              "copilot",
-              "xai"
-            ],
-            "type": "string"
           }
         },
         "type": "object"
@@ -171,11 +130,12 @@
     },
     "debug": {
       "default": false,
-      "description": "Enable debug mode",
+      "description": "Enable debug mode for tandem. find the debug.log in the .tandem dir.",
       "type": "boolean"
     }
   },
   "required": [
+    "providers",
     "agents"
   ],
   "additionalProperties": false,
@@ -216,7 +176,6 @@
             "o3",
             "o3-mini",
             "o4-mini",
-            
             "claude-3-opus",
             "claude-3.5-haiku",
             "claude-3-haiku",
@@ -224,31 +183,24 @@
             "claude-3.5-sonnet",
             "claude-3.7-sonnet",
             "claude-4-opus",
-            
             "llama-3.3-70b-versatile",
             "meta-llama/llama-4-maverick-17b-128e-instruct",
             "meta-llama/llama-4-scout-17b-16e-instruct",
             "deepseek-r1-distill-llama-70b",
             "moonshotai/kimi-k2-instruct",
             "qwen-qwq",
-
             "gemini-2.0-flash-lite",
             "gemini-2.0-flash",
             "gemini-2.5-pro",
             "gemini-2.5-flash",
             "gemini-2.5-flash-lite",
-
             "vertexai.gemini-2.5-flash",
             "vertexai.gemini-2.5-pro",
             "vertexai.gemini-2.5-flash-lite",
-
             "grok-3-beta",
             "grok-3-mini-fast-beta",
             "grok-3-fast-beta",
             "grok-3-mini-beta",
-
-
-
             "copilot.gpt-4o",
             "copilot.gpt-4o-mini",
             "copilot.gpt-4.1",
@@ -259,6 +211,7 @@
             "copilot.o3-mini",
             "copilot.o4-mini",
             "copilot.gemini-2.0-flash",
+            "copilot.gemini-2.5-pro"
             "copilot.gemini-2.5-pro"
           ]
         },
@@ -313,6 +266,8 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
+        "docker_cli",
+        "agent_tool"
         "docker_cli",
         "agent_tool"
       ]

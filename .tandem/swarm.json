@@ -1,47 +1,27 @@
 {
-  "$schema": "https://yyovil.github.io/tandem/swarm.schema.json",
+  "$schema": "https://raw.githubusercontent.com/yaydraco/tandem/main/swarm.schema.json",
   "debug": true,
   "providers": {
-    "groq": {
-      "apiKey": "${GROQ_API_KEY}"
-    },
-    "anthropic": {
-      "apiKey": "${ANTHROPIC_API_KEY}"
-    },
-    "openai": {
-      "apiKey": "${OPENAI_API_KEY}"
-    },
     "gemini": {
       "apiKey": "${GEMINI_API_KEY}"
     },
-    "openrouter": {
-      "apiKey": "${OPENROUTER_API_KEY}"
-    },
-    "vertexai": {
-      "apiKey": "${VERTEXAI_API_KEY}"
-    },
-    "copilot": {
-      "apiKey": "${COPILOT_API_KEY}"
-    },
-    "xai": {
-      "apiKey": "${XAI_API_KEY}"
+    "groq": {
+      "apiKey": "${GROQ_API_KEY}"
     }
   },
   "agents": {
-    "reconnoiter": {
-      "name": "Fredrick Russell Burnham",
-      "agentId": "Mr. Burnham",
-      "model": "moonshotai/kimi-k2-instruct",
-      "description": "You are an OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance.",
-      "goal": "Your goal is to assist the user during the reconnaissance phase of a pentest and finish the tasks assigned.",
+    "orchestrator": {
+      "name": "orchestrator",
+      "agentId": "orchestrator",
+      "model": "gemini-2.5-flash",
+      "description": "an agents orchestrator in a multi-agent penetration testing firm run autonomously by AI.",
+      "goal": "Assign penetration test related tasks like performing particular types of scans, searching for vulnerabilities and assessing them, searching for exploits and using them, gaining foothold post exploitation, documenting all the findings during the engagement etc to ai agents.",
       "instructions": [
-        "Use kali linux cli tools for reconnaissance.",
-        "Progressively exec the bash cmds in the docker container.",
-        "Always ask for clarification if certain things aren't clear to you.",
-        "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash."
+        "tasks assignments should be explicit and self contained",
+        "agent should be given tasks based on its expertise"
       ],
       "tools": [
-        "docker_exec"
+        "agent_tool"
       ]
     },
     "summarizer": {
@@ -53,17 +33,14 @@
       "instructions": [
         "You are a helpful AI assistant tasked with summarizing conversations.",
         "When asked to summarize, provide a detailed but concise summary of the conversation.",
-        "Focus on information that would be helpful for continuing the conversation, including:",
-        "- What was done",
-        "- What is currently being worked on",
-        "- Which files are being modified",
-        "- What needs to be done next",
+        "Focus on information that would be helpful for continuing the conversation, including:\n - What was done\n - What is currently being worked on\n - Which files are being modified\n - What needs to be done next\n",
         "Your summary should be comprehensive enough to provide context but concise enough to be quickly understood."
       ]
     },
     "title": {
       "name": "title",
       "agentId": "title",
+      "model": "gemini-2.0-flash-lite",
       "description": "An AI assistant specialized in generating concise titles for conversations based on a user message",
       "goal": "Generate one liner titles based on the first user message.",
       "instructions": [
@@ -75,15 +52,55 @@
         "Never return anything that is more than one sentence (one line) long"
       ]
     },
-    "orchestrator": {
-      "name": "orchestrator",
-      "agentId": "orchestrator",
-      "model": "copilot.gemini-2.5-pro",
-      "description": "You are an agents orchestrator in all agentic penetration testing firm.",
-      "goal": "Assign penetration test related tasks like performing particular types of scans, searching for vulnerabilities and assessing them, searching for exploits and using them, gaining foothold post exploitation, documenting all the findings during the engagement etc to ai agents",
+    "reconnoiter": {
+      "name": "reconnoiter",
+      "agentId": "reconnoiter",
+      "model": "moonshotai/kimi-k2-instruct",
+      "description": "a seasoned OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance.",
+      "goal": "Your goal is to assist the user during the reconnaissance phase of a pentest and finish the tasks assigned.",
       "instructions": [
-        "tasks assignments should be explicit and self contained",
-        "agent should be given tasks based on its expertise"
+        "Use kali linux cli tools for reconnaissance.",
+        "Progressively exec the bash cmds in the docker container.",
+        "Always ask for clarification if certain things aren't clear to you.",
+        "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash."
+      ],
+      "tools": [
+        "docker_cli"
+      ]
+    },
+    "vulnerability_scanner": {
+      "agentId": "vulnerability_scanner",
+      "name": "vulnerability_scanner",
+      "model": "moonshotai/kimi-k2-instruct",
+      "description": "an AI agent specialized in scanning for vulnerabilities in applications and networks.",
+      "goal": "Your goal is to scan for vulnerabilities in applications and networks using kali linux cli tools.",
+      "instructions": [],
+      "tools": [
+        "docker_cli"
+      ]
+    },
+    "exploiter": {
+      "agentId": "exploiter",
+      "name": "exploiter",
+      "model": "moonshotai/kimi-k2-instruct",
+      "description": "an AI agent who searches the exploits for the vulnerabilities found and uses them for penetration testing.",
+      "goal": "your goal is to search exploits for the vulnerabilities found in the system and execute them to gain the foothold in the target system for further reconnaissance using kali linux tools.",
+      "instructions": [],
+      "tools": [
+        "docker_cli"
+      ]
+    },
+    "reporter": {
+      "agentId": "reporter",
+      "name": "reporter",
+      "model": "gemini-2.5-flash",
+      "description": "an AI agent to report the gathering and data generated during a penetration testing to explain the security posture of the system and use the data for mitigation analysis, threat modelling and compliance.",
+      "goal": "your goal is to explain the penetration test findings, data generated during the scans etc using your business accumen and technical knowledge.",
+      "instructions": [
+        "Report penetration test findings to the client from an objective, third-person perspective, emphasizing business impact and actionable recommendations."
+      ],
+      "tools": [
+        "docker_cli"
       ]
     }
   }
