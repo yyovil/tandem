@@ -163,7 +163,6 @@
           "type": "string",
           "description": "The AI model to use for this agent",
           "enum": [
-
             "gpt-4.1",
             "gpt-4o",
             "gpt-4o-mini",
@@ -211,7 +210,6 @@
             "copilot.o3-mini",
             "copilot.o4-mini",
             "copilot.gemini-2.0-flash",
-            "copilot.gemini-2.5-pro"
             "copilot.gemini-2.5-pro"
           ]
         },
@@ -266,8 +264,6 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
-        "docker_cli",
-        "agent_tool"
         "docker_cli",
         "agent_tool"
       ]
