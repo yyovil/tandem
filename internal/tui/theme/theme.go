@@ -224,7 +224,7 @@ func CurrentTheme() Theme {
 	darkBackground := "#000000"
 	darkCurrentLine := "#252525"
 	darkSelection := "#303030"
-	darkForeground := "#ffffff"
+	darkForeground := "#d9d9d9ff"
 	darkComment := "#6a6a6a"
 	darkPrimary := "#ff26b3"   // Primary orange/gold
 	darkSecondary := "#1e7cff" // Secondary blue

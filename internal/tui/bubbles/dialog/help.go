@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
 )
 
 type helpCmp struct {
@@ -74,7 +74,7 @@ func (h *helpCmp) render() string {
 	var (
 		pairs []string
 		width int
-		rows  = 12 - 2
+		rows  = 8
 	)
 
 	for i := 0; i < len(bindings); i += rows {
@@ -146,22 +146,27 @@ func (h *helpCmp) render() string {
 			lastPair,                   // content
 			lipgloss.WithWhitespaceBackground(t.Background()),
 		))
-		content := baseStyle.Width(h.width).Render(
-			lipgloss.JoinHorizontal(
-				lipgloss.Top,
-				prefix...,
-			),
-		)
+		content := baseStyle.
+			// Width(h.width).
+			Render(
+				lipgloss.JoinHorizontal(
+					lipgloss.Top,
+					prefix...,
+				),
+			)
 		return content
 	}
 
 	// Join pairs of columns and enclose in a border
-	content := baseStyle.Width(h.width).Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			pairs...,
-		),
-	)
+	content := baseStyle.
+		// Width(h.width - 2).
+		Render(
+			lipgloss.JoinHorizontal(
+				lipgloss.Top,
+				pairs...,
+			),
+		)
+
 	return content
 }
 
@@ -179,12 +184,12 @@ func (h *helpCmp) View() string {
 	return baseStyle.Padding(1).
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(t.TextMuted()).
-		Width(h.width).
+		// Width(h.width).
 		BorderBackground(t.Background()).
 		Render(
 			lipgloss.JoinVertical(lipgloss.Center,
 				header,
-				// baseStyle.Render(strings.Repeat(" ", lipgloss.Width(header)-2)),
+				baseStyle.Render(strings.Repeat(" ", lipgloss.Width(header)-2)),
 				content,
 			),
 		)

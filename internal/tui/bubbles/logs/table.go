@@ -7,12 +7,12 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/pubsub"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
-	"github.com/yyovil/tandem/internal/utils"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yaydraco/tandem/internal/tui/layout"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 type TableComponent interface {
@@ -86,7 +86,7 @@ func (i *tableCmp) SetSize(width int, height int) tea.Cmd {
 }
 
 func (i *tableCmp) BindingKeys() []key.Binding {
-	return layout.KeyMapToSlice(i.table.KeyMap)
+	return utils.KeyMapToSlice(i.table.KeyMap)
 }
 
 func (i *tableCmp) setRows() {

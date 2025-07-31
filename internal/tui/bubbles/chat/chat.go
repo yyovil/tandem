@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
-	"github.com/yyovil/tandem/internal/version"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/version"
 )
 
 type SendMsg struct {
@@ -26,8 +26,8 @@ type EditorFocusMsg bool
 func header(width int) string {
 	return lipgloss.JoinVertical(
 		lipgloss.Top,
-		logo(width),
-		repo(width),
+		logo(width-2),
+		repo(width-2),
 		" ",
 		cwd(width),
 	)
@@ -56,7 +56,7 @@ func logo(width int) string {
 }
 
 func repo(width int) string {
-	repo := "https://github.com/yyovil/tandem"
+	repo := "https://github.com/yaydraco/tandem"
 	t := theme.CurrentTheme()
 
 	return styles.BaseStyle().

@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/tui/theme"
 )
 
 const defaultMargin = 1
@@ -16,10 +16,16 @@ func uintPtr(u uint) *uint       { return &u }
 
 // returns a glamour TermRenderer configured with the current theme
 func GetMarkdownRenderer(width int) *glamour.TermRenderer {
-	r, _ := glamour.NewTermRenderer(
+	r, err := glamour.NewTermRenderer(
 		glamour.WithStyles(generateMarkdownStyleConfig()),
 		glamour.WithWordWrap(width),
 	)
+	if err != nil {
+		// Fall back to a basic renderer without custom styles
+		r, _ = glamour.NewTermRenderer(
+			glamour.WithWordWrap(width),
+		)
+	}
 	return r
 }
 
@@ -165,88 +171,8 @@ func generateMarkdownStyleConfig() ansi.StyleConfig {
 				},
 				Margin: uintPtr(defaultMargin),
 			},
-			Chroma: &ansi.Chroma{
-				Text: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.MarkdownText())),
-				},
-				Error: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.Error())),
-				},
-				Comment: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxComment())),
-				},
-				CommentPreproc: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				Keyword: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				KeywordReserved: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				KeywordNamespace: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				KeywordType: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxType())),
-				},
-				Operator: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxOperator())),
-				},
-				Punctuation: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxPunctuation())),
-				},
-				Name: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxVariable())),
-				},
-				NameBuiltin: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxVariable())),
-				},
-				NameTag: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				NameAttribute: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxFunction())),
-				},
-				NameClass: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxType())),
-				},
-				NameConstant: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxVariable())),
-				},
-				NameDecorator: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxFunction())),
-				},
-				NameFunction: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxFunction())),
-				},
-				LiteralNumber: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxNumber())),
-				},
-				LiteralString: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxString())),
-				},
-				LiteralStringEscape: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.SyntaxKeyword())),
-				},
-				GenericDeleted: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.DiffRemoved())),
-				},
-				GenericEmph: ansi.StylePrimitive{
-					Color:  stringPtr(adaptiveColorToString(t.MarkdownEmph())),
-					Italic: boolPtr(true),
-				},
-				GenericInserted: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.DiffAdded())),
-				},
-				GenericStrong: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.MarkdownStrong())),
-					Bold:  boolPtr(true),
-				},
-				GenericSubheading: ansi.StylePrimitive{
-					Color: stringPtr(adaptiveColorToString(t.MarkdownHeading())),
-				},
-			},
+			// Don't set custom Chroma styles to avoid nil pointer issues
+			// Let glamour use its default syntax highlighting
 		},
 		Table: ansi.StyleTable{
 			StyleBlock: ansi.StyleBlock{

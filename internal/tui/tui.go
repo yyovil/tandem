@@ -7,19 +7,19 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/agent"
-	"github.com/yyovil/tandem/internal/app"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/pubsub"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tui/bubbles"
-	"github.com/yyovil/tandem/internal/tui/bubbles/chat"
-	"github.com/yyovil/tandem/internal/tui/bubbles/dialog"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/tui/page"
-	"github.com/yyovil/tandem/internal/tui/theme"
-	"github.com/yyovil/tandem/internal/utils"
+	"github.com/yaydraco/tandem/internal/agent"
+	"github.com/yaydraco/tandem/internal/app"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tui/bubbles"
+	"github.com/yaydraco/tandem/internal/tui/bubbles/chat"
+	"github.com/yaydraco/tandem/internal/tui/bubbles/dialog"
+	"github.com/yaydraco/tandem/internal/tui/layout"
+	"github.com/yaydraco/tandem/internal/tui/page"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 const (
@@ -377,7 +377,7 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Logs):
 			return a, a.moveToPage(page.LogsPage)
 		case key.Matches(msg, keys.Help):
-			
+
 			if a.showQuit {
 				return a, nil
 			}
@@ -492,7 +492,7 @@ func (a appModel) View() string {
 	}
 
 	if a.showHelp {
-		bindings := layout.KeyMapToSlice(keys)
+		bindings := utils.KeyMapToSlice(keys)
 		if p, ok := a.pages[a.currentPage].(layout.Bindings); ok {
 			bindings = append(bindings, p.BindingKeys()...)
 		}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/models"
-	"github.com/yyovil/tandem/internal/tools"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/models"
+	"github.com/yaydraco/tandem/internal/tools"
 )
 
 type EventType string
@@ -106,6 +106,14 @@ func NewProvider(providerName models.ModelProvider, opts ...ProviderClientOption
 		return &baseProvider[GeminiClient]{
 			options: clientOptions,
 			client:  newGeminiClient(clientOptions),
+		}, nil
+	case models.ProviderGROQ:
+		clientOptions.openaiOptions = append(clientOptions.openaiOptions,
+			WithOpenAIBaseURL("https://api.groq.com/openai/v1"),
+		)
+		return &baseProvider[OpenAIClient]{
+			options: clientOptions,
+			client:  newOpenAIClient(clientOptions),
 		}, nil
 	case models.ProviderVertexAI:
 		return &baseProvider[VertexAIClient]{

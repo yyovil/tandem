@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/yyovil/tandem/internal/models"
+	"github.com/yaydraco/tandem/internal/models"
 )
 
 type MessageRole string

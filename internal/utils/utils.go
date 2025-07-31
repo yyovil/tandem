@@ -2,43 +2,22 @@ package utils
 
 import (
 	"encoding/json"
+	"reflect"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 )
 
 type (
-	Type           string
 	InfoType       int
-	Status         string
 	ClearStatusMsg struct{}
 	InfoMsg        struct {
 		Type InfoType
 		Msg  string
 		TTL  time.Duration
 	}
-)
-
-const (
-	Requesting    Status = "requesting"
-	Streaming     Status = "streaming"
-	ToolCall      Status = "tool_call"
-	ToolCompleted Status = "tool_completed"
-	Idle          Status = "idle"
-	Error         Status = "error"
-)
-
-// OpenAPI 3.0 Specified type.
-const (
-	TypeUnspecified Type = "TYPE_UNSPECIFIED"
-	TypeString      Type = "STRING"
-	TypeNumber      Type = "NUMBER"
-	TypeInteger     Type = "INTEGER"
-	TypeBoolean     Type = "BOOLEAN"
-	TypeArray       Type = "ARRAY"
-	TypeObject      Type = "OBJECT"
-	TypeNULL        Type = "NULL"
 )
 
 const (
@@ -94,4 +73,16 @@ func ReportInfo(info string) tea.Cmd {
 		Type: InfoTypeInfo,
 		Msg:  info,
 	})
+}
+
+func KeyMapToSlice(t any) (bindings []key.Binding) {
+	typ := reflect.TypeOf(t)
+	if typ.Kind() != reflect.Struct {
+		return nil
+	}
+	for i := range typ.NumField() {
+		v := reflect.ValueOf(t).Field(i)
+		bindings = append(bindings, v.Interface().(key.Binding))
+	}
+	return
 }

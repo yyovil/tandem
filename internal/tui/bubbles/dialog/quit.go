@@ -6,10 +6,10 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
-	"github.com/yyovil/tandem/internal/utils"
+	"github.com/yaydraco/tandem/internal/tui/layout"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 const question = "Are you sure you want to quit?"
@@ -126,7 +126,7 @@ func (q *quitDialogCmp) View() string {
 }
 
 func (q *quitDialogCmp) BindingKeys() []key.Binding {
-	return layout.KeyMapToSlice(helpKeys)
+	return utils.KeyMapToSlice(helpKeys)
 }
 
 func NewQuitCmp() QuitDialog {

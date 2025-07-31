@@ -5,10 +5,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/pubsub"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
 )
 
 type sidebarCmp struct {
@@ -37,13 +37,13 @@ func (m *sidebarCmp) View() string {
 
 	return baseStyle.
 		Width(m.width).
-		PaddingLeft(4).
-		PaddingRight(2).
-		Height(m.height - 1).
+		PaddingLeft(2).
+		PaddingTop(1).
+		Height(m.height).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Top,
-				header(m.width),
+				header(m.width-2),
 				" ",
 				m.sessionSection(),
 			),

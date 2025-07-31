@@ -10,14 +10,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/spf13/cobra"
-	"github.com/yyovil/tandem/internal/app"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/db"
-	"github.com/yyovil/tandem/internal/format"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/pubsub"
-	"github.com/yyovil/tandem/internal/tui"
-	"github.com/yyovil/tandem/internal/version"
+	"github.com/yaydraco/tandem/internal/app"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/db"
+	"github.com/yaydraco/tandem/internal/format"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yaydraco/tandem/internal/tui"
+	"github.com/yaydraco/tandem/internal/version"
 )
 
 var rootCmd = cobra.Command{
@@ -79,8 +79,7 @@ var rootCmd = cobra.Command{
 			logging.Error("Failed to create app: %v", err)
 			return err
 		}
-		// Defer shutdown here so it runs for both interactive and non-interactive modes
-		defer app.Shutdown()
+		
 
 		// Initialize MCP tools early for both modes
 		// initMCPTools(ctx, app)
@@ -131,9 +130,6 @@ var rootCmd = cobra.Command{
 
 		// Cleanup function for when the program exits
 		cleanup := func() {
-			// Shutdown the app
-			app.Shutdown()
-
 			// Cancel subscriptions first
 			cancelSubs()
 

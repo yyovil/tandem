@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/tools"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/tools"
 	"google.golang.org/genai"
 )
 
@@ -96,7 +96,7 @@ func (g *geminiClient) convertMessages(messages []message.Message) []*genai.Cont
 
 		case message.Tool:
 			for _, result := range msg.ToolResults() {
-				response := map[string]interface{}{"result": result.Content}
+				response := map[string]any{"result": result.Content}
 				parsed, err := parseJsonToMap(result.Content)
 				if err == nil {
 					response = parsed
@@ -224,15 +224,7 @@ func (g *geminiClient) send(ctx context.Context, messages []message.Message, too
 				case part.Text != "":
 					content = string(part.Text)
 				case part.FunctionCall != nil:
-					id := "call_" + uuid.New().String()
-					args, _ := json.Marshal(part.FunctionCall.Args)
-					toolCalls = append(toolCalls, message.ToolCall{
-						ID:       id,
-						Name:     part.FunctionCall.Name,
-						Input:    string(args),
-						Type:     "function",
-						Finished: true,
-					})
+					toolCalls = append(toolCalls, g.toolCalls(resp)...)
 				}
 			}
 		}
@@ -265,7 +257,9 @@ func (g *geminiClient) stream(ctx context.Context, messages []message.Message, t
 
 	history := geminiMessages[:len(geminiMessages)-1] // All but last message
 	lastMsg := geminiMessages[len(geminiMessages)-1]
+	// TODO: abstract this out in a func so that send/stream could use the same method for passing the json schema for structured object generation.
 	config := &genai.GenerateContentConfig{
+		// ResponseSchema: ,
 		MaxOutputTokens: int32(g.providerOptions.maxTokens),
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: g.providerOptions.systemMessage}},
@@ -464,13 +458,13 @@ func WithGeminiDisableCache() GeminiOption {
 }
 
 // Helper functions
-func parseJsonToMap(jsonStr string) (map[string]interface{}, error) {
-	var result map[string]interface{}
+func parseJsonToMap(jsonStr string) (map[string]any, error) {
+	var result map[string]any
 	err := json.Unmarshal([]byte(jsonStr), &result)
 	return result, err
 }
 
-func convertSchemaProperties(parameters map[string]interface{}) map[string]*genai.Schema {
+func convertSchemaProperties(parameters map[string]any) map[string]*genai.Schema {
 	properties := make(map[string]*genai.Schema)
 
 	for name, param := range parameters {
@@ -480,10 +474,11 @@ func convertSchemaProperties(parameters map[string]interface{}) map[string]*gena
 	return properties
 }
 
-func convertToSchema(param interface{}) *genai.Schema {
+// TODO: current implementation doesn't handle the "required" params within the schema. 
+func convertToSchema(param any) *genai.Schema {
 	schema := &genai.Schema{Type: genai.TypeString}
 
-	paramMap, ok := param.(map[string]interface{})
+	paramMap, ok := param.(map[string]any)
 	if !ok {
 		return schema
 	}
@@ -508,16 +503,18 @@ func convertToSchema(param interface{}) *genai.Schema {
 	case "array":
 		schema.Items = processArrayItems(paramMap)
 	case "object":
-		if props, ok := paramMap["properties"].(map[string]interface{}); ok {
+		if props, ok := paramMap["properties"].(map[string]any); ok {
 			schema.Properties = convertSchemaProperties(props)
 		}
 	}
 
+
+
 	return schema
 }
 
-func processArrayItems(paramMap map[string]interface{}) *genai.Schema {
-	items, ok := paramMap["items"].(map[string]interface{})
+func processArrayItems(paramMap map[string]any) *genai.Schema {
+	items, ok := paramMap["items"].(map[string]any)
 	if !ok {
 		return nil
 	}

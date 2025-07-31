@@ -11,15 +11,14 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/app"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tui/bubbles/dialog"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
-	"github.com/yyovil/tandem/internal/utils"
+	"github.com/yaydraco/tandem/internal/app"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tui/bubbles/dialog"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 type editorCmp struct {
@@ -203,22 +202,33 @@ func (m *editorCmp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *editorCmp) View() string {
+	t := theme.CurrentTheme()
+
+	// Style the prompt with theme colors
+	style := lipgloss.NewStyle().
+		Bold(true).
+		PaddingLeft(2).
+		Height(m.textarea.Height()).
+		Background(t.Background()).
+		Foreground(t.Primary())
+
 	if len(m.attachments) == 0 {
-		return lipgloss.JoinHorizontal(lipgloss.Top, m.textarea.View())
+		return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(">"), m.textarea.View())
 	}
-	m.textarea.SetHeight(m.height)
+
+	m.textarea.SetHeight(m.height - 1)
 	return lipgloss.JoinVertical(lipgloss.Top,
 		m.attachmentsContent(),
-		lipgloss.JoinHorizontal(lipgloss.Top, m.textarea.View()),
+		lipgloss.JoinHorizontal(lipgloss.Top, style.Render(">"),
+			m.textarea.View()),
 	)
 }
 
 func (m *editorCmp) SetSize(width, height int) tea.Cmd {
 	m.width = width
 	m.height = height
-	m.textarea.SetWidth(width)
+	m.textarea.SetWidth(width - 3) // account for the prompt + ">"
 	m.textarea.SetHeight(height)
-	m.textarea.SetWidth(width)
 	return nil
 }
 
@@ -231,8 +241,10 @@ func (m *editorCmp) attachmentsContent() string {
 	t := theme.CurrentTheme()
 	attachmentStyles := styles.BaseStyle().
 		MarginLeft(1).
-		Background(t.TextMuted()).
+		MarginBackground(t.Background()).
+		Background(t.BackgroundSecondary()).
 		Foreground(t.Text())
+
 	for i, attachment := range m.attachments {
 		var filename string
 		if len(attachment.FileName) > 10 {
@@ -245,14 +257,15 @@ func (m *editorCmp) attachmentsContent() string {
 		}
 		styledAttachments = append(styledAttachments, attachmentStyles.Render(filename))
 	}
-	content := lipgloss.JoinHorizontal(lipgloss.Left, styledAttachments...)
+	content := styles.BaseStyle().Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Left, styledAttachments...))
+
 	return content
 }
 
 func (m *editorCmp) BindingKeys() []key.Binding {
 	bindings := []key.Binding{}
-	bindings = append(bindings, layout.KeyMapToSlice(editorMaps)...)
-	bindings = append(bindings, layout.KeyMapToSlice(DeleteKeyMaps)...)
+	bindings = append(bindings, utils.KeyMapToSlice(editorMaps)...)
+	bindings = append(bindings, utils.KeyMapToSlice(DeleteKeyMaps)...)
 	return bindings
 }
 

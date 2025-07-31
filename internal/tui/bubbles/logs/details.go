@@ -9,10 +9,11 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/tui/styles"
-	"github.com/yyovil/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/tui/layout"
+	"github.com/yaydraco/tandem/internal/tui/styles"
+	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 type DetailComponent interface {
@@ -99,7 +100,7 @@ func (i *detailCmp) updateContent() {
 func getLevelStyle(level string) lipgloss.Style {
 	style := lipgloss.NewStyle().Bold(true)
 	t := theme.CurrentTheme()
-	
+
 	switch strings.ToLower(level) {
 	case "info":
 		return style.Foreground(t.Info())
@@ -133,7 +134,7 @@ func (i *detailCmp) SetSize(width int, height int) tea.Cmd {
 }
 
 func (i *detailCmp) BindingKeys() []key.Binding {
-	return layout.KeyMapToSlice(i.viewport.KeyMap)
+	return utils.KeyMapToSlice(i.viewport.KeyMap)
 }
 
 func NewLogsDetails() DetailComponent {

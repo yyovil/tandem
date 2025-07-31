@@ -13,11 +13,11 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/shared"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/models"
-	toolsPkg "github.com/yyovil/tandem/internal/tools"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/models"
+	toolsPkg "github.com/yaydraco/tandem/internal/tools"
 )
 
 type copilotOptions struct {
@@ -280,6 +280,7 @@ func (c *copilotClient) finishReason(reason string) message.FinishReason {
 	}
 }
 
+// TODO: define a param that accepts a response format for structured object generation.
 func (c *copilotClient) preparedParams(messages []openai.ChatCompletionMessageParamUnion, tools []openai.ChatCompletionToolParam) openai.ChatCompletionNewParams {
 	params := openai.ChatCompletionNewParams{
 		Model:    openai.ChatModel(c.providerOptions.model.APIModel),

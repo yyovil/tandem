@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/models"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/models"
 )
 
 // Application constants
@@ -30,7 +30,7 @@ var (
 	contextContent string
 )
 
-// Config represents the swarm configuration.
+// NOTE: corresponds to swarm.json
 type Config struct {
 	RoEPath     string                            `json:"contextPaths,omitempty"`
 	WorkingDir  string                            `json:"wd,omitempty"`
@@ -45,8 +45,8 @@ type Config struct {
 var cfg *Config
 
 // Data defines storage configuration.
-// NOTE: docker_exec is going to use this is as a bind mount for the swarm's container.
 type Data struct {
+	BindMount string `json:"bindMount,omitempty"`
 	Directory string `json:"directory,omitempty"`
 }
 
@@ -59,19 +59,22 @@ type Provider struct {
 type AgentName string
 
 const (
-	Orchestrator          AgentName = "orchestrator"
-	ProjectManager        AgentName = "project_manager"
-	Reconnoiter           AgentName = "reconnoiter"
-	Exploiter             AgentName = "exploiter"
-	VulnerabilityAssessor AgentName = "vulnerability_assessor"
-	AgentSummarizer       AgentName = "summarizer"
-	AgentTask             AgentName = "task"
-	AgentTitle            AgentName = "title"
+	Orchestrator AgentName = "orchestrator"
+
+	// Penetration testing engagement agents
+	Reconnoiter          AgentName = "reconnoiter"
+	VulnerabilityScanner AgentName = "vulnerability_scanner"
+	Exploiter            AgentName = "exploiter"
+	Reporter             AgentName = "reporter"
+
+	// Application purpose agents
+	AgentSummarizer AgentName = "summarizer"
+	AgentTitle      AgentName = "title"
 )
 
 type Agent struct {
 	AgentID         string         `json:"agentId"`
-	Name            string         `json:"name,omitempty"`
+	Name            AgentName      `json:"name,omitempty"`
 	Description     string         `json:"description"`
 	Goal            string         `json:"goal"`
 	Model           models.ModelID `json:"model"`
@@ -122,7 +125,9 @@ func Load(workingDir string, debug bool) (*Config, error) {
 	if cfg.Debug {
 		defaultLevel = slog.LevelDebug
 	}
-	if os.Getenv("OPENCODE_DEV_DEBUG") == "true" {
+
+	// TODO: shouldn't we set this env var if the swarm.json say it so?
+	if cfg.Debug {
 		loggingFile := fmt.Sprintf("%s/%s", cfg.Data.Directory, "debug.log")
 		messagesPath := fmt.Sprintf("%s/%s", cfg.Data.Directory, "messages")
 
@@ -170,11 +175,12 @@ func Load(workingDir string, debug bool) (*Config, error) {
 	}
 
 	// Override the max tokens for title agent
-	cfg.Agents[AgentTitle] = Agent{
-		Model:     cfg.Agents[AgentTitle].Model,
-		MaxTokens: 80,
-	}
+	agent := cfg.Agents[AgentTitle]
+	agent.MaxTokens = 80
+	cfg.Agents[AgentTitle] = agent
+
 	return cfg, nil
+
 }
 
 func UpdateAgentModel(agentName AgentName, modelID models.ModelID) error {
@@ -248,7 +254,7 @@ func LoadGitHubToken() (string, error) {
 			continue
 		}
 
-		var config map[string]map[string]interface{}
+		var config map[string]map[string]any
 		if err := json.Unmarshal(data, &config); err != nil {
 			continue
 		}
@@ -346,9 +352,11 @@ func setProviderDefaults() {
 		viper.SetDefault("providers.openai.apiKey", apiKey)
 	}
 	if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
+		logging.Debug("env var", "key", "gemini", "value", apiKey)
 		viper.SetDefault("providers.gemini.apiKey", apiKey)
 	}
 	if apiKey := os.Getenv("GROQ_API_KEY"); apiKey != "" {
+		logging.Debug("env var", "key", "groq", "value", apiKey)
 		viper.SetDefault("providers.groq.apiKey", apiKey)
 	}
 	if apiKey := os.Getenv("OPENROUTER_API_KEY"); apiKey != "" {
@@ -377,7 +385,6 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.copilot.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.CopilotGPT4o)
 		viper.SetDefault("agents.summarizer.model", models.CopilotGPT4o)
-		viper.SetDefault("agents.task.model", models.CopilotGPT4o)
 		viper.SetDefault("agents.title.model", models.CopilotGPT4o)
 		return
 	}
@@ -386,7 +393,6 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.anthropic.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.Claude4Sonnet)
 		viper.SetDefault("agents.summarizer.model", models.Claude4Sonnet)
-		viper.SetDefault("agents.task.model", models.Claude4Sonnet)
 		viper.SetDefault("agents.title.model", models.Claude4Sonnet)
 		return
 	}
@@ -395,16 +401,14 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.openai.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.GPT41)
 		viper.SetDefault("agents.summarizer.model", models.GPT41)
-		viper.SetDefault("agents.task.model", models.GPT41Mini)
 		viper.SetDefault("agents.title.model", models.GPT41Mini)
 		return
 	}
 
 	// Google Gemini configuration
 	if key := viper.GetString("providers.gemini.apiKey"); strings.TrimSpace(key) != "" {
-		viper.SetDefault("agents.orchestrator.model", models.Gemini25)
-		viper.SetDefault("agents.summarizer.model", models.Gemini25)
-		viper.SetDefault("agents.task.model", models.Gemini25Flash)
+		viper.SetDefault("agents.orchestrator.model", models.Gemini25Pro)
+		viper.SetDefault("agents.summarizer.model", models.Gemini25Pro)
 		viper.SetDefault("agents.title.model", models.Gemini25Flash)
 		return
 	}
@@ -413,7 +417,6 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.groq.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.QWENQwq)
 		viper.SetDefault("agents.summarizer.model", models.QWENQwq)
-		viper.SetDefault("agents.task.model", models.QWENQwq)
 		viper.SetDefault("agents.title.model", models.QWENQwq)
 		return
 	}
@@ -422,7 +425,6 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.openrouter.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.OpenRouterClaude37Sonnet)
 		viper.SetDefault("agents.summarizer.model", models.OpenRouterClaude37Sonnet)
-		viper.SetDefault("agents.task.model", models.OpenRouterClaude37Sonnet)
 		viper.SetDefault("agents.title.model", models.OpenRouterClaude35Haiku)
 		return
 	}
@@ -431,7 +433,6 @@ func setProviderDefaults() {
 	if key := viper.GetString("providers.xai.apiKey"); strings.TrimSpace(key) != "" {
 		viper.SetDefault("agents.orchestrator.model", models.XAIGrok3Beta)
 		viper.SetDefault("agents.summarizer.model", models.XAIGrok3Beta)
-		viper.SetDefault("agents.task.model", models.XAIGrok3Beta)
 		viper.SetDefault("agents.title.model", models.XAiGrok3MiniFastBeta)
 		return
 	}
@@ -440,7 +441,6 @@ func setProviderDefaults() {
 	if hasVertexAICredentials() {
 		viper.SetDefault("agents.orchestrator.model", models.VertexAIGemini25)
 		viper.SetDefault("agents.summarizer.model", models.VertexAIGemini25)
-		viper.SetDefault("agents.task.model", models.VertexAIGemini25Flash)
 		viper.SetDefault("agents.title.model", models.VertexAIGemini25Flash)
 		return
 	}
@@ -485,7 +485,7 @@ func validateAgent(cfg *Config, name AgentName, agent Agent) error {
 			"configured_model", agent.Model)
 
 		// Set default model based on available providers
-		if setDefaultModelForAgent(name) {
+		if setDefaultModelForAgent(agent) {
 			logging.Info("set default model for agent", "agent", name, "model", cfg.Agents[name].Model)
 		} else {
 			return fmt.Errorf("no valid provider available for agent %s", name)
@@ -507,7 +507,7 @@ func validateAgent(cfg *Config, name AgentName, agent Agent) error {
 				"provider", provider)
 
 			// Set default model based on available providers
-			if setDefaultModelForAgent(name) {
+			if setDefaultModelForAgent(agent) {
 				logging.Info("set default model for agent", "agent", name, "model", cfg.Agents[name].Model)
 			} else {
 				return fmt.Errorf("no valid provider available for agent %s", name)
@@ -527,7 +527,7 @@ func validateAgent(cfg *Config, name AgentName, agent Agent) error {
 			"provider", provider)
 
 		// Set default model based on available providers
-		if setDefaultModelForAgent(name) {
+		if setDefaultModelForAgent(agent) {
 			logging.Info("set default model for agent", "agent", name, "model", cfg.Agents[name].Model)
 		} else {
 			return fmt.Errorf("no valid provider available for agent %s", name)
@@ -666,29 +666,24 @@ func hasVertexAICredentials() bool {
 }
 
 // setDefaultModelForAgent sets a default model for an agent based on available providers
-func setDefaultModelForAgent(agent AgentName) bool {
+func setDefaultModelForAgent(agent Agent) bool {
 	if hasCopilotCredentials() {
 		maxTokens := int64(5000)
-		if agent == AgentTitle {
+		if agent.Name == AgentTitle {
 			maxTokens = 80
 		}
-
-		cfg.Agents[agent] = Agent{
-			Model:     models.CopilotGPT4o,
-			MaxTokens: maxTokens,
-		}
+		agent.Model = models.CopilotGPT4o
+		agent.MaxTokens = maxTokens
 		return true
 	}
 	// Check providers in order of preference
 	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
 		maxTokens := int64(5000)
-		if agent == AgentTitle {
+		if agent.Name == AgentTitle {
 			maxTokens = 80
 		}
-		cfg.Agents[agent] = Agent{
-			Model:     models.Claude37Sonnet,
-			MaxTokens: maxTokens,
-		}
+		agent.Model = models.Claude37Sonnet
+		agent.MaxTokens = maxTokens
 		return true
 	}
 
@@ -697,12 +692,10 @@ func setDefaultModelForAgent(agent AgentName) bool {
 		maxTokens := int64(5000)
 		reasoningEffort := ""
 
-		switch agent {
+		switch agent.Name {
 		case AgentTitle:
 			model = models.GPT41Mini
 			maxTokens = 80
-		case AgentTask:
-			model = models.GPT41Mini
 		default:
 			model = models.GPT41
 		}
@@ -712,11 +705,9 @@ func setDefaultModelForAgent(agent AgentName) bool {
 			reasoningEffort = "medium"
 		}
 
-		cfg.Agents[agent] = Agent{
-			Model:           model,
-			MaxTokens:       maxTokens,
-			ReasoningEffort: reasoningEffort,
-		}
+		agent.Model = model
+		agent.MaxTokens = maxTokens
+		agent.ReasoningEffort = reasoningEffort
 		return true
 	}
 
@@ -725,12 +716,10 @@ func setDefaultModelForAgent(agent AgentName) bool {
 		maxTokens := int64(5000)
 		reasoningEffort := ""
 
-		switch agent {
+		switch agent.Name {
 		case AgentTitle:
 			model = models.OpenRouterClaude35Haiku
 			maxTokens = 80
-		case AgentTask:
-			model = models.OpenRouterClaude37Sonnet
 		default:
 			model = models.OpenRouterClaude37Sonnet
 		}
@@ -740,11 +729,9 @@ func setDefaultModelForAgent(agent AgentName) bool {
 			reasoningEffort = "medium"
 		}
 
-		cfg.Agents[agent] = Agent{
-			Model:           model,
-			MaxTokens:       maxTokens,
-			ReasoningEffort: reasoningEffort,
-		}
+		agent.Model = model
+		agent.MaxTokens = maxTokens
+		agent.ReasoningEffort = reasoningEffort
 		return true
 	}
 
@@ -752,30 +739,24 @@ func setDefaultModelForAgent(agent AgentName) bool {
 		var model models.ModelID
 		maxTokens := int64(5000)
 
-		if agent == AgentTitle {
+		if agent.Name == AgentTitle {
 			model = models.Gemini25Flash
 			maxTokens = 80
 		} else {
-			model = models.Gemini25
+			model = models.Gemini25Pro
 		}
-
-		cfg.Agents[agent] = Agent{
-			Model:     model,
-			MaxTokens: maxTokens,
-		}
+		agent.Model = model
+		agent.MaxTokens = maxTokens
 		return true
 	}
 
 	if apiKey := os.Getenv("GROQ_API_KEY"); apiKey != "" {
 		maxTokens := int64(5000)
-		if agent == AgentTitle {
+		if agent.Name == AgentTitle {
 			maxTokens = 80
 		}
-
-		cfg.Agents[agent] = Agent{
-			Model:     models.QWENQwq,
-			MaxTokens: maxTokens,
-		}
+		agent.Model = models.QWENQwq
+		agent.MaxTokens = maxTokens
 		return true
 	}
 
@@ -783,17 +764,15 @@ func setDefaultModelForAgent(agent AgentName) bool {
 		var model models.ModelID
 		maxTokens := int64(5000)
 
-		if agent == AgentTitle {
+		if agent.Name == AgentTitle {
 			model = models.VertexAIGemini25Flash
 			maxTokens = 80
 		} else {
 			model = models.VertexAIGemini25
 		}
 
-		cfg.Agents[agent] = Agent{
-			Model:     model,
-			MaxTokens: maxTokens,
-		}
+		agent.Model = model
+		agent.MaxTokens = maxTokens
 		return true
 	}
 
@@ -836,22 +815,18 @@ func getRoE() string {
 			cfg         = Get()
 			contextPath = cfg.RoEPath
 		)
-		contextContent = processFile(contextPath)
+
+		content, err := os.ReadFile(contextPath)
+		if err != nil {
+			contextContent = ""
+		}
+		contextContent = string(content)
 	})
 
 	return contextContent
 }
 
-func processFile(filePath string) string {
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return ""
-	}
-	return "<context>" + string(content) + "</context>"
-}
-
 func GetAgentPrompt(agentName AgentName, provider models.ModelProvider) (basePrompt string) {
-
 	cfg := Get()
 	agent := cfg.Agents[agentName]
 	var instructions string
@@ -873,8 +848,29 @@ func GetAgentPrompt(agentName AgentName, provider models.ModelProvider) (basePro
 	`, agent.Name, agent.Description, agent.Goal, instructions)
 
 	if agentName == Orchestrator {
+		// Add team information for orchestrator
+		var teamInfo string
+		penetrationTestingAgents := []AgentName{
+			Reconnoiter,
+			VulnerabilityScanner,
+			Exploiter,
+			Reporter,
+		}
+
+		for _, teamAgentName := range penetrationTestingAgents {
+			if teamAgent, exists := cfg.Agents[teamAgentName]; exists {
+				teamInfo += fmt.Sprintf("- %s: %s\n", teamAgent.Name, teamAgent.Description)
+			}
+		}
+
+		basePrompt = fmt.Sprintf(`
+		%s
+		<team>
+			%s
+		</team>
+		`, basePrompt, teamInfo)
+
 		RoE := getRoE()
-		logging.Debug("Context content", "Context", RoE)
 		if RoE != "" {
 			return fmt.Sprintf(`
 			%s
@@ -884,7 +880,5 @@ func GetAgentPrompt(agentName AgentName, provider models.ModelProvider) (basePro
 			`, basePrompt, RoE)
 		}
 	}
-	
-	logging.Debug("GetAgentPrompt", "agent", agentName, "system prompt", basePrompt)
 	return basePrompt
 }

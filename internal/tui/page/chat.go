@@ -5,12 +5,12 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yyovil/tandem/internal/app"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tui/bubbles/chat"
-	"github.com/yyovil/tandem/internal/tui/layout"
-	"github.com/yyovil/tandem/internal/utils"
+	"github.com/yaydraco/tandem/internal/app"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tui/bubbles/chat"
+	"github.com/yaydraco/tandem/internal/tui/layout"
+	"github.com/yaydraco/tandem/internal/utils"
 )
 
 var ChatPage PageID = "chat"
@@ -93,7 +93,6 @@ func (cp *chatPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (cp *chatPage) setSidebar() tea.Cmd {
 	sidebarContainer := layout.NewContainer(
 		chat.NewSidebarCmp(cp.session),
-		layout.WithPadding(1, 1, 1, 1),
 	)
 	return tea.Batch(cp.layout.SetRightPanel(sidebarContainer), sidebarContainer.Init())
 }
@@ -124,7 +123,12 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 	}
 	return tea.Batch(cmds...)
 }
-
+func (p *chatPage) BindingKeys() []key.Binding {
+	bindings := utils.KeyMapToSlice(keyMap)
+	bindings = append(bindings, p.messages.BindingKeys()...)
+	bindings = append(bindings, p.editor.BindingKeys()...)
+	return bindings
+}
 func NewChatPage(app *app.App) tea.Model {
 
 	messagesContainer := layout.NewContainer(

@@ -16,4 +16,4 @@
 > **NOTE**: *These experiments are kind of like abalation, QoL improvements etc.*
 
 ## Wish
-- i want to conditionally include a property in the Agent schema if the name of the agent is "orchestrator".
+- agent's have a tool that they can use to notify the user when working in the background.

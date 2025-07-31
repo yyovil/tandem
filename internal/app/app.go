@@ -6,20 +6,21 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/yyovil/tandem/internal/agent"
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/db"
-	"github.com/yyovil/tandem/internal/format"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/agent"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/db"
+	"github.com/yaydraco/tandem/internal/format"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tools"
 )
 
-// NOTE: we pass the app instance to bubble components to utilise the services like messages, session etc.
 type App struct {
 	Sessions     session.Service
 	Messages     message.Service
 	Orchestrator agent.Service
+	// ADHD: why we shouldn't initialise all the agents at once right in here? here's another thought. we don't want to have multiple agents of the same time, say couple of reconnoiters, doing some scanning because of the nature of the task in hand.
 }
 
 func New(ctx context.Context, conn *sql.DB) (*App, error) {
@@ -37,8 +38,9 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 		config.Orchestrator,
 		app.Sessions,
 		app.Messages,
+		[]tools.BaseTool{agent.NewAgentTool(app.Sessions, app.Messages)},
 	)
-	
+
 	if err != nil {
 		logging.Error("Failed to create orchestrator agent", err)
 		return nil, err
@@ -51,7 +53,6 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 func (a *App) RunNonInteractive(ctx context.Context, prompt string, outputFormat string, quiet bool) error {
 	logging.Info("Running in non-interactive mode")
 
-	// Start spinner if not in quiet mode
 	var spinner *format.Spinner
 	if !quiet {
 		spinner = format.NewSpinner("Thinking...")
@@ -90,12 +91,10 @@ func (a *App) RunNonInteractive(ctx context.Context, prompt string, outputFormat
 		return fmt.Errorf("agent processing failed: %w", result.Error)
 	}
 
-	// Stop spinner before printing output
 	if !quiet && spinner != nil {
 		spinner.Stop()
 	}
 
-	// Get the text content from the response
 	content := "No content available"
 	if result.Message.Content().String() != "" {
 		content = result.Message.Content().String()
@@ -107,7 +106,3 @@ func (a *App) RunNonInteractive(ctx context.Context, prompt string, outputFormat
 
 	return nil
 }
-
-// TODO: remove this afterwards.
-// NOTE: we dont need to implement this.
-func (app *App) Shutdown() {}

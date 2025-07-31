@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yyovil/tandem/internal/config"
-	"github.com/yyovil/tandem/internal/logging"
-	"github.com/yyovil/tandem/internal/message"
-	"github.com/yyovil/tandem/internal/models"
-	"github.com/yyovil/tandem/internal/provider"
-	"github.com/yyovil/tandem/internal/pubsub"
-	"github.com/yyovil/tandem/internal/session"
-	"github.com/yyovil/tandem/internal/tools"
+	"github.com/yaydraco/tandem/internal/config"
+	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yaydraco/tandem/internal/message"
+	"github.com/yaydraco/tandem/internal/models"
+	"github.com/yaydraco/tandem/internal/provider"
+	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/tools"
 )
 
 // Common errors
@@ -708,11 +708,12 @@ func (a *agent) TrackUsage(ctx context.Context, sessionID string, model models.M
 	return nil
 }
 
+// TODO: define an optional param to accept the expected_output schema.
 func NewAgent(
 	agentName config.AgentName,
 	sessions session.Service,
 	messages message.Service,
-	// agentTools []tools.BaseTool,
+	agentTools []tools.BaseTool,
 ) (Service, error) {
 	agentProvider, err := createAgentProvider(agentName)
 	if err != nil {
@@ -737,11 +738,11 @@ func NewAgent(
 	}
 
 	agent := &agent{
-		Broker:   pubsub.NewBroker[AgentEvent](),
-		provider: agentProvider,
-		messages: messages,
-		sessions: sessions,
-		// tools:             agentTools,
+		Broker:            pubsub.NewBroker[AgentEvent](),
+		provider:          agentProvider,
+		messages:          messages,
+		sessions:          sessions,
+		tools:             agentTools,
 		titleProvider:     titleProvider,
 		summarizeProvider: summarizeProvider,
 		activeRequests:    sync.Map{},

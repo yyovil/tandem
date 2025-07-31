@@ -22,6 +22,7 @@
             vagrant
             starship
             sqlc
+            gh
 
             # TODO:
             # docker_25

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+
 )
 
 type ToolInfo struct {
@@ -68,7 +69,7 @@ type ToolCall struct {
 
 type BaseTool interface {
 	Info() ToolInfo
-	Run(ctx context.Context, params ToolCall) (ToolResponse, error)
+	Run(ctx context.Context, call ToolCall) (ToolResponse, error)
 }
 
 func GetContextValues(ctx context.Context) (string, string) {
@@ -81,4 +82,9 @@ func GetContextValues(ctx context.Context) (string, string) {
 		return sessionID.(string), ""
 	}
 	return sessionID.(string), messageID.(string)
+}
+
+// NOTE: concatenate it with the role specific tools
+var PenetrationTestingAgentTools = []BaseTool{
+	NewDockerCli(),
 }
