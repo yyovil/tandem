@@ -75,6 +75,7 @@ func ReportInfo(info string) tea.Cmd {
 	})
 }
 
+
 func KeyMapToSlice(t any) (bindings []key.Binding) {
 	typ := reflect.TypeOf(t)
 	if typ.Kind() != reflect.Struct {
