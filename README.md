@@ -105,7 +105,7 @@ After configuring your API keys and agent settings:
 
 2. **Run Tandem**: Start the TUI interface to interact with your AI agent swarm:
    ```shell
-   ./tandem
+   tandem
    ```
 
 3. **Interact with agents**: Use the interface to communicate with specialized agents for different phases of your penetration testing workflow.
