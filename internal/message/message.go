@@ -269,6 +269,8 @@ func (s *service) fromDBItem(item db.Message) (Message, error) {
 		SessionID: item.SessionID,
 		Role:      MessageRole(item.Role),
 		Parts:     parts,
+		CreatedAt: item.CreatedAt,
+		UpdatedAt: item.UpdatedAt,
 	}, nil
 }
 

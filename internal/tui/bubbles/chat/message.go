@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -139,11 +140,12 @@ func renderAssistantMessage(
 	if finished {
 		switch finishData.Reason {
 		case message.FinishReasonEndTurn:
-			took := formatTimestampDiff(msg.CreatedAt, finishData.Time)
+			createdTime := formatTimeFromTimestamp(msg.CreatedAt)
+			took := formatTimestampDiffSeconds(msg.CreatedAt, finishData.Time)
 			info = append(info, baseStyle.
 				Width(width-1).
 				Foreground(t.TextMuted()).
-				Render(fmt.Sprintf(" (%s)", took)),
+				Render(fmt.Sprintf(" %s (%s)", createdTime, took)),
 			)
 		case message.FinishReasonCanceled:
 			info = append(info, baseStyle.
@@ -474,4 +476,36 @@ func formatTimestampDiff(start, end int64) string {
 		return fmt.Sprintf("%.1fs", diffSeconds)
 	}
 	return fmt.Sprintf("%.1fm", diffSeconds/60)
+}
+
+// Helper function to format the time difference in human-readable format
+func formatTimestampDiffSeconds(start, end int64) string {
+	diffSeconds := int(float64(end-start) / 1000.0) // Convert to seconds
+	
+	if diffSeconds < 60 {
+		return fmt.Sprintf("%ds", diffSeconds)
+	}
+	
+	if diffSeconds < 3600 {
+		minutes := diffSeconds / 60
+		seconds := diffSeconds % 60
+		if seconds == 0 {
+			return fmt.Sprintf("%dm", minutes)
+		}
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
+	}
+	
+	hours := diffSeconds / 3600
+	remainingSeconds := diffSeconds % 3600
+	minutes := remainingSeconds / 60
+	if minutes == 0 {
+		return fmt.Sprintf("%dh", hours)
+	}
+	return fmt.Sprintf("%dh%dm", hours, minutes)
+}
+
+// Helper function to format timestamp as HH:MM AM/PM
+func formatTimeFromTimestamp(timestamp int64) string {
+	t := time.Unix(timestamp/1000, 0) // Convert from milliseconds to seconds
+	return t.Format("3:04 PM")
 }
