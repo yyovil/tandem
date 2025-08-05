@@ -18,7 +18,9 @@ import (
 )
 
 type geminiOptions struct {
-	disableCache bool
+	disableCache   bool
+	responseSchema GeminiExpectedOutput
+	mimeType       string
 }
 
 type GeminiOption func(*geminiOptions)
@@ -30,6 +32,13 @@ type geminiClient struct {
 }
 
 type GeminiClient ProviderClient
+
+type GeminiExpectedOutput struct {
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	Schema      *genai.Schema `json:"schema"`
+	Required    []string      `json:"required"`
+}
 
 func newGeminiClient(opts providerClientOptions) GeminiClient {
 	geminiOpts := geminiOptions{}
@@ -182,6 +191,8 @@ func (g *geminiClient) send(ctx context.Context, messages []message.Message, too
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: g.providerOptions.systemMessage}},
 		},
+		ResponseMIMEType: g.options.mimeType,
+		ResponseSchema:   g.options.responseSchema.Schema,
 	}
 	if len(tools) > 0 {
 		config.Tools = g.convertTools(tools)
@@ -245,8 +256,7 @@ func (g *geminiClient) send(ctx context.Context, messages []message.Message, too
 	}
 }
 
-func (g *geminiClient) stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent {
-	// Convert messages
+func (g *geminiClient) stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent {
 	geminiMessages := g.convertMessages(messages)
 
 	cfg := config.Get()
@@ -259,12 +269,16 @@ func (g *geminiClient) stream(ctx context.Context, messages []message.Message, t
 	lastMsg := geminiMessages[len(geminiMessages)-1]
 	// TODO: abstract this out in a func so that send/stream could use the same method for passing the json schema for structured object generation.
 	config := &genai.GenerateContentConfig{
-		// ResponseSchema: ,
 		MaxOutputTokens: int32(g.providerOptions.maxTokens),
 		SystemInstruction: &genai.Content{
 			Parts: []*genai.Part{{Text: g.providerOptions.systemMessage}},
 		},
 	}
+
+	for _, opt := range options {
+		opt(config)
+	}
+
 	if len(tools) > 0 {
 		config.Tools = g.convertTools(tools)
 	}
@@ -457,6 +471,36 @@ func WithGeminiDisableCache() GeminiOption {
 	}
 }
 
+func WithGeminiResponseSchema(schema map[string]any) GeminiOption {
+	return func(options *geminiOptions) {
+		geminiExpectedOutput := GeminiExpectedOutput{}
+		if title, ok := schema["title"].(string); ok {
+			geminiExpectedOutput.Title = title
+		}
+
+		if description, ok := schema["description"].(string); ok {
+			geminiExpectedOutput.Description = description
+		}
+
+		if required, ok := schema["required"].([]string); ok {
+			geminiExpectedOutput.Required = required
+		}
+
+		if properties, ok := schema["properties"].(map[string]any); ok {
+			geminiExpectedOutput.Schema = convertToSchema(properties)
+		}
+
+		options.responseSchema = geminiExpectedOutput
+	}
+}
+
+// NOTE: we are only gonna use this when there's a response schema to adhere to and the value is gonna be application/json.
+func WithGeminiJsonMimeType() GeminiOption {
+	return func(options *geminiOptions) {
+		options.mimeType = "application/json"
+	}
+}
+
 // Helper functions
 func parseJsonToMap(jsonStr string) (map[string]any, error) {
 	var result map[string]any
@@ -468,13 +512,15 @@ func convertSchemaProperties(parameters map[string]any) map[string]*genai.Schema
 	properties := make(map[string]*genai.Schema)
 
 	for name, param := range parameters {
+		if name == "$schema" {
+			continue
+		}
 		properties[name] = convertToSchema(param)
 	}
 
 	return properties
 }
 
-// TODO: current implementation doesn't handle the "required" params within the schema. 
 func convertToSchema(param any) *genai.Schema {
 	schema := &genai.Schema{Type: genai.TypeString}
 
@@ -499,6 +545,10 @@ func convertToSchema(param any) *genai.Schema {
 
 	schema.Type = mapJSONTypeToGenAI(typeStr)
 
+	if enum, ok := paramMap["enum"].([]string); ok {
+		schema.Enum = enum
+	}
+
 	switch typeStr {
 	case "array":
 		schema.Items = processArrayItems(paramMap)
@@ -508,8 +558,9 @@ func convertToSchema(param any) *genai.Schema {
 		}
 	}
 
-
-
+	if required, ok := paramMap["required"].([]string); ok {
+		schema.Required = required
+	}
 	return schema
 }
 

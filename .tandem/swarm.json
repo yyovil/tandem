@@ -6,7 +6,7 @@
       "apiKey": "${GEMINI_API_KEY}"
     },
     "groq": {
-      "apiKey": "${GROQ_API_KEY}"
+      "apiKey": "{GROQ_API_KEY}"
     }
   },
   "agents": {
@@ -17,8 +17,9 @@
       "description": "an agents orchestrator in a multi-agent penetration testing firm run autonomously by AI.",
       "goal": "Assign penetration test related tasks like performing particular types of scans, searching for vulnerabilities and assessing them, searching for exploits and using them, gaining foothold post exploitation, documenting all the findings during the engagement etc to ai agents.",
       "instructions": [
-        "tasks assignments should be explicit and self contained",
-        "agent should be given tasks based on its expertise"
+        "tasks assignments should include what tools and techniques to be used by the subagent",
+        "agent should be given tasks based on its expertise",
+        "use [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema) for predicting the expected_output schema"
       ],
       "tools": [
         "agent_tool"
@@ -33,7 +34,11 @@
       "instructions": [
         "You are a helpful AI assistant tasked with summarizing conversations.",
         "When asked to summarize, provide a detailed but concise summary of the conversation.",
-        "Focus on information that would be helpful for continuing the conversation, including:\n - What was done\n - What is currently being worked on\n - Which files are being modified\n - What needs to be done next\n",
+        "Focus on information that would be helpful for continuing the conversation, including:",
+        "What was done",
+        "What is currently being worked on",
+        "Which files are being modified",
+        "What needs to be done next",
         "Your summary should be comprehensive enough to provide context but concise enough to be quickly understood."
       ]
     },
@@ -42,14 +47,11 @@
       "agentId": "title",
       "model": "gemini-2.0-flash-lite",
       "description": "An AI assistant specialized in generating concise titles for conversations based on a user message",
-      "goal": "Generate one liner titles based on the first user message.",
+      "goal": "Generate one liner titles based on the first user message. <example>\nprivesc on linux → privilege escalation\nanalyze pcap dump → traffic analysis\nbypass waf rules → waf bypass\nperform a network pentest on target at 192.168.34.23 → network pentest on 192.168.34.23\n</example>",
       "instructions": [
         "Use the first user message to generate a one liner.",
-        "Ensure it is not more than 50 characters long",
-        "The title should be a summary of the user's message",
-        "Do not use quotes or colons",
-        "The entire text you return will be used as the title",
-        "Never return anything that is more than one sentence (one line) long"
+        "Output the single best categorical title, lowercase, no punctuation.",
+        "The entire text you return will be used as the title"
       ]
     },
     "reconnoiter": {
@@ -98,9 +100,6 @@
       "goal": "your goal is to explain the penetration test findings, data generated during the scans etc using your business accumen and technical knowledge.",
       "instructions": [
         "Report penetration test findings to the client from an objective, third-person perspective, emphasizing business impact and actionable recommendations."
-      ],
-      "tools": [
-        "docker_cli"
       ]
     }
   }

@@ -23,6 +23,7 @@ type openaiOptions struct {
 	disableCache    bool
 	reasoningEffort string
 	extraHeaders    map[string]string
+	responseSchema  OpenAIExpectedOutput
 }
 
 type OpenAIOption func(*openaiOptions)
@@ -34,6 +35,12 @@ type openaiClient struct {
 }
 
 type OpenAIClient ProviderClient
+
+type OpenAIExpectedOutput struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Schema      map[string]any `json:"schema"`
+}
 
 func newOpenAIClient(opts providerClientOptions) OpenAIClient {
 	openaiOpts := openaiOptions{
@@ -168,10 +175,10 @@ func (o *openaiClient) preparedParams(messages []openai.ChatCompletionMessagePar
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{
 				JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-					// Name: ,
-					// Description: ,
-					// Strict: ,
-					// Schema: ,
+					Name:        o.options.responseSchema.Name,
+					Description: openai.String(o.options.responseSchema.Description),
+					Strict:      openai.Bool(true),
+					Schema:      o.options.responseSchema.Schema,
 				},
 			},
 		},
@@ -249,8 +256,13 @@ func (o *openaiClient) send(ctx context.Context, messages []message.Message, too
 	}
 }
 
-func (o *openaiClient) stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent {
+func (o *openaiClient) stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent {
 	params := o.preparedParams(o.convertMessages(messages), o.convertTools(tools))
+
+	for _, opt := range options {
+		opt(&params)
+	}
+
 	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
 		IncludeUsage: openai.Bool(true),
 	}
@@ -401,6 +413,24 @@ func (o *openaiClient) usage(completion openai.ChatCompletion) TokenUsage {
 		OutputTokens:        completion.Usage.CompletionTokens,
 		CacheCreationTokens: 0, // OpenAI doesn't provide this directly
 		CacheReadTokens:     cachedTokens,
+	}
+}
+
+func WithOpenAIResponseSchema(schema map[string]any) OpenAIOption {
+	return func(options *openaiOptions) {
+		// TODO: convert the schema to the expected format for OpenAI
+		openaiExpectedOutput := OpenAIExpectedOutput{}
+		if title, ok := schema["title"].(string); ok {
+			openaiExpectedOutput.Name = title
+		}
+		if description, ok := schema["description"].(string); ok {
+			openaiExpectedOutput.Description = description
+		}
+		if properties, ok := schema["properties"].(map[string]any); ok {
+			openaiExpectedOutput.Schema = properties
+		}
+
+		options.responseSchema = openaiExpectedOutput
 	}
 }
 

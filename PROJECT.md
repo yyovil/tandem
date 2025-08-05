@@ -17,3 +17,8 @@
 
 ## Wish
 - agent's have a tool that they can use to notify the user when working in the background.
+
+## Rough
+- responseSchema and mimeType are provider specific because not every provider supports it. then they are passed while creating the provider client and we gotta do the prop drilling from NewAgent -> createAgentProvider.
+
+

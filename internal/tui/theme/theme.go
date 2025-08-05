@@ -240,16 +240,16 @@ func CurrentTheme() Theme {
 	lightBackground := "#f8f8f8"
 	lightCurrentLine := "#f0f0f0"
 	lightSelection := "#e5e5e6"
-	lightForeground := "#2a2a2a"
+	lightForeground := "#000000"
 	lightComment := "#8a8a8a"
-	lightPrimary := "#3b7dd8"   // Primary blue
-	lightSecondary := "#7b5bb6" // Secondary purple
-	lightAccent := "#d68c27"    // Accent orange/gold
-	lightRed := "#d1383d"       // Error red
-	lightOrange := "#d68c27"    // Warning orange
-	lightGreen := "#3d9a57"     // Success green
-	lightCyan := "#318795"      // Info cyan
-	lightYellow := "#b0851f"    // Emphasized text
+	lightPrimary := "#ff26b3"   // Primary orange/gold
+	lightSecondary := "#1e7cff" // Secondary blue
+	lightAccent := "#9d7cd8"    // Accent purple
+	lightRed := "#ec1532"       // Error red
+	lightOrange := "#f5a742"    // Warning orange
+	lightGreen := "#59dc38"     // Success green
+	lightCyan := "#56b6c2"      // Info cyan
+	lightYellow := "#e5c07b"    // Emphasized text
 	lightBorder := "#d3d3d3"    // Border color
 
 	theme := &BaseTheme{}

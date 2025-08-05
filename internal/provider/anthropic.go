@@ -19,8 +19,9 @@ import (
 )
 
 type anthropicOptions struct {
-	disableCache bool
-	shouldThink  func(userMessage string) bool
+	disableCache   bool
+	shouldThink    func(userMessage string) bool
+	responseSchema string
 }
 
 type AnthropicOption func(*anthropicOptions)
@@ -123,7 +124,6 @@ func (a *anthropicClient) convertTools(tools []toolsPkg.BaseTool) []anthropic.To
 			Description: anthropic.String(info.Description),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Properties: info.Parameters,
-				// TODO: figure out how we can tell claude the required fields?
 			},
 		}
 
@@ -239,9 +239,13 @@ func (a *anthropicClient) send(ctx context.Context, messages []message.Message, 
 	}
 }
 
-func (a *anthropicClient) stream(ctx context.Context, messages []message.Message, tools []toolsPkg.BaseTool) <-chan ProviderEvent {
+func (a *anthropicClient) stream(ctx context.Context, messages []message.Message, tools []toolsPkg.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent {
 	preparedMessages := a.preparedMessages(a.convertMessages(messages), a.convertTools(tools))
 	cfg := config.Get()
+
+	for _, opt := range options {
+		opt(&preparedMessages)
+	}
 
 	var sessionId string
 	requestSeqId := (len(messages) + 1) / 2

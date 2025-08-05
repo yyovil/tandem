@@ -39,6 +39,7 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 		app.Sessions,
 		app.Messages,
 		[]tools.BaseTool{agent.NewAgentTool(app.Sessions, app.Messages)},
+		nil,
 	)
 
 	if err != nil {

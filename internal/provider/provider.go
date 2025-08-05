@@ -52,7 +52,7 @@ type ProviderEvent struct {
 type Provider interface {
 	SendMessages(ctx context.Context, messages []message.Message, tools []tools.BaseTool) (*ProviderResponse, error)
 
-	StreamResponse(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent
+	StreamResponse(ctx context.Context, messages []message.Message, tools []tools.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent
 
 	Model() models.Model
 }
@@ -71,9 +71,11 @@ type providerClientOptions struct {
 
 type ProviderClientOption func(*providerClientOptions)
 
+type GenerateContentConfigOption func(any)
+
 type ProviderClient interface {
 	send(ctx context.Context, messages []message.Message, tools []tools.BaseTool) (*ProviderResponse, error)
-	stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent
+	stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent
 }
 
 type baseProvider[C ProviderClient] struct {
@@ -167,9 +169,9 @@ func (p *baseProvider[C]) Model() models.Model {
 	return p.options.model
 }
 
-func (p *baseProvider[C]) StreamResponse(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent {
+func (p *baseProvider[C]) StreamResponse(ctx context.Context, messages []message.Message, tools []tools.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent {
 	messages = p.cleanMessages(messages)
-	return p.client.stream(ctx, messages, tools)
+	return p.client.stream(ctx, messages, tools, options...)
 }
 
 func WithAPIKey(apiKey string) ProviderClientOption {

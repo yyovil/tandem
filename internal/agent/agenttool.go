@@ -13,23 +13,17 @@ import (
 
 const AgentToolName = "agent_tool"
 
-var AgentNames = []config.AgentName{
-	config.Reconnoiter,
-	config.VulnerabilityScanner,
-	config.Exploiter,
-	config.Reporter,
+var AgentNames = []string{
+	string(config.Reconnoiter),
+	string(config.VulnerabilityScanner),
+	string(config.Exploiter),
+	string(config.Reporter),
 }
 
 type AgentToolArgs struct {
-	Prompt         string             `json:"prompt"`
-	AgentName      config.AgentName   `json:"agent_name,omitempty"`
-	ExpectedOutput ExpectedOutputType `json:"expected_output,omitempty"`
-}
-
-type ExpectedOutputType struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Schema      map[string]any `json:"schema"`
+	Prompt         string           `json:"prompt"`
+	AgentName      config.AgentName `json:"agent_name,omitempty"`
+	ExpectedOutput map[string]any   `json:"expected_output"`
 }
 
 type AgentTool struct {
@@ -51,26 +45,10 @@ func (a *AgentTool) Info() tools.ToolInfo {
 				"description": "ID of the agent to call",
 				"enum":        AgentNames,
 			},
+			// ADHD: asking a llm to predict the json schema in this way is too probabilistic. we need to be more specific about the fields it could have. 
 			"expected_output": map[string]any{
-				"type":        "object",
-				"description": "Expected output schema specification that the agent should follow when generating structured responses.",
-				// TODO: this has to adhere to this schema as well.
-				"properties": map[string]any{
-					"type": "object",
-					"name": map[string]any{
-						"type":        "string",
-						"description": "Name identifier for the output schema",
-					},
-					"description": map[string]any{
-						"type":        "string",
-						"description": "Human-readable description of what the output should contain",
-					},
-					"schema": map[string]any{
-						"type":        "object",
-						"description": "JSON schema definition that specifies the structure, types, and constraints for the expected output",
-					},
-				},
-				"required": []string{"name", "description", "schema"},
+				"type":        "string",
+				"description": "a JSON string representing the schema of the expected output that orchestrator requests the subagent to follow while responding after assigned task is completed.",
 			},
 		},
 		Required: []string{"prompt", "agent_name", "expected_output"},
@@ -85,7 +63,7 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 
 	// Validate the agent name
 	for _, agentName := range AgentNames {
-		if args.AgentName == agentName {
+		if args.AgentName == config.AgentName(agentName) {
 			break
 		}
 		return tools.NewTextErrorResponse("invalid agent name: " + string(args.AgentName)), nil
@@ -98,7 +76,7 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 
 	// NOTE: you can add more tools later here if needed on AgentName basis.
 	agentTools := tools.PenetrationTestingAgentTools
-	agent, err := NewAgent(args.AgentName, a.sessions, a.messages, agentTools)
+	agent, err := NewAgent(args.AgentName, a.sessions, a.messages, agentTools, args.ExpectedOutput)
 	if err != nil {
 		return tools.NewTextErrorResponse("failed to create agent: " + err.Error()), nil
 	}

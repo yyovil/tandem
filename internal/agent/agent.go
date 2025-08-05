@@ -233,7 +233,7 @@ func (a *agent) Update(agentName config.AgentName, modelID models.ModelID) (mode
 		return models.Model{}, fmt.Errorf("failed to update config: %w", err)
 	}
 
-	provider, err := createAgentProvider(agentName)
+	provider, err := createAgentProvider(agentName, nil)
 	if err != nil {
 		return models.Model{}, fmt.Errorf("failed to create provider for model %s: %w", modelID, err)
 	}
@@ -539,14 +539,15 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 				}
 				continue
 			}
-			toolResult, toolErr := tool.Run(ctx, tools.ToolCall{
+			// toolResult, toolErr := tool.Run(ctx, tools.ToolCall{
+			toolResult, _ := tool.Run(ctx, tools.ToolCall{
 				ID:    toolCall.ID,
 				Name:  toolCall.Name,
 				Input: toolCall.Input,
 			})
+
 			// TODO: Figure out how to finish message when tool execution fails. earlier we were appending the finish message only when its of the type permission denied.
-			if toolErr != nil {
-			}
+			// if toolErr != nil {}
 
 			toolResults[i] = message.ToolResult{
 				ToolCallID: toolCall.ID,
@@ -575,7 +576,8 @@ out:
 	return assistantMsg, &msg, err
 }
 
-func createAgentProvider(agentName config.AgentName) (provider.Provider, error) {
+func createAgentProvider(agentName config.AgentName, expectedOutput map[string]any) (provider.Provider, error) {
+
 	cfg := config.Get()
 	agentConfig, ok := cfg.Agents[agentName]
 	if !ok {
@@ -605,6 +607,7 @@ func createAgentProvider(agentName config.AgentName) (provider.Provider, error) 
 		provider.WithSystemMessage(systemMessage),
 		provider.WithMaxTokens(maxTokens),
 	}
+
 	if model.Provider == models.ProviderOpenAI || model.CanReason {
 		opts = append(
 			opts,
@@ -621,6 +624,28 @@ func createAgentProvider(agentName config.AgentName) (provider.Provider, error) 
 		)
 	}
 
+	if expectedOutput != nil {
+		switch model.Provider {
+		case
+			models.ProviderCopilot,
+			models.ProviderGROQ,
+			models.ProviderXAI,
+			models.ProviderOpenRouter,
+			models.ProviderOpenAI:
+			opts = append(opts, provider.WithOpenAIOptions(
+				provider.WithOpenAIResponseSchema(expectedOutput)),
+			)
+		case
+			models.ProviderVertexAI,
+			models.ProviderGemini:
+			opts = append(opts, provider.WithGeminiOptions(
+				provider.WithGeminiResponseSchema(expectedOutput),
+				provider.WithGeminiJsonMimeType(),
+			))
+
+			// TODO: handle the case for anthropic. in case of anthropic we can simply append the marshallIndent output as the <expected_output/>.
+		}
+	}
 	agentProvider, err := provider.NewProvider(
 		model.Provider,
 		opts...,
@@ -708,22 +733,24 @@ func (a *agent) TrackUsage(ctx context.Context, sessionID string, model models.M
 	return nil
 }
 
-// TODO: define an optional param to accept the expected_output schema.
 func NewAgent(
 	agentName config.AgentName,
 	sessions session.Service,
 	messages message.Service,
 	agentTools []tools.BaseTool,
+	expectedOutput map[string]any,
 ) (Service, error) {
-	agentProvider, err := createAgentProvider(agentName)
+	agentProvider, err := createAgentProvider(agentName, expectedOutput)
 	if err != nil {
 		return nil, err
 	}
+
 	var titleProvider provider.Provider
 
 	// Only generate titles and summaries for the orchestrator agent
 	if agentName == config.Orchestrator {
-		titleProvider, err = createAgentProvider(config.AgentTitle)
+		// NOTE: we can use the expected output schema in here as well.
+		titleProvider, err = createAgentProvider(config.AgentTitle, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -731,7 +758,8 @@ func NewAgent(
 
 	var summarizeProvider provider.Provider
 	if agentName == config.Orchestrator {
-		summarizeProvider, err = createAgentProvider(config.AgentSummarizer)
+		// NOTE: we can use the expected output schema in here as well.
+		summarizeProvider, err = createAgentProvider(config.AgentSummarizer, nil)
 		if err != nil {
 			return nil, err
 		}

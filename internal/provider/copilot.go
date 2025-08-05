@@ -52,7 +52,7 @@ func (c *copilotClient) isAnthropicModel() bool {
 	return false
 }
 
-// loadGitHubToken loads the GitHub OAuth token from the standard GitHub CLI/Copilot locations
+// TODO: loadGitHubToken loads the GitHub OAuth token from the standard GitHub CLI/Copilot locations. ig this is what we are missing rn.
 
 // exchangeGitHubToken exchanges a GitHub token for a Copilot bearer token
 func (c *copilotClient) exchangeGitHubToken(githubToken string) (string, error) {
@@ -374,10 +374,14 @@ func (c *copilotClient) send(ctx context.Context, messages []message.Message, to
 	}
 }
 
-func (c *copilotClient) stream(ctx context.Context, messages []message.Message, tools []toolsPkg.BaseTool) <-chan ProviderEvent {
+func (c *copilotClient) stream(ctx context.Context, messages []message.Message, tools []toolsPkg.BaseTool, options ...GenerateContentConfigOption) <-chan ProviderEvent {
 	params := c.preparedParams(c.convertMessages(messages), c.convertTools(tools))
 	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
 		IncludeUsage: openai.Bool(true),
+	}
+
+	for _, opt := range options {
+		opt(&params)
 	}
 
 	cfg := config.Get()
