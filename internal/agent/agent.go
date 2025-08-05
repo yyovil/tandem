@@ -59,8 +59,10 @@ type agent struct {
 	sessions session.Service
 	messages message.Service
 
-	tools    []tools.BaseTool
-	provider provider.Provider
+	agentName       config.AgentName
+	tools           []tools.BaseTool
+	provider        provider.Provider
+	toolCallTracker *tools.ToolCallTracker
 
 	titleProvider     provider.Provider
 	summarizeProvider provider.Provider
@@ -410,6 +412,10 @@ func (a *agent) Summarize(ctx context.Context, sessionID string) error {
 			Done:      true,
 		}
 		a.Publish(pubsub.CreatedEvent, event)
+		
+		// Reset tool call counters for the session since we're summarizing
+		a.toolCallTracker.ResetSession(oldSession.ID)
+		
 		// Send final success event with the new session ID
 	}()
 
@@ -539,6 +545,28 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 				}
 				continue
 			}
+
+			// Check tool call limits
+			sessionID, _ := tools.GetContextValues(ctx)
+			if sessionID != "" {
+				// Get agent configuration to check limits
+				cfg := config.Get()
+				agentConfig, hasAgentConfig := cfg.Agents[a.agentName]
+				if hasAgentConfig && agentConfig.MaxToolCalls > 0 {
+					currentCallCount := a.toolCallTracker.GetToolCallCount(sessionID, toolCall.Name)
+					if currentCallCount >= agentConfig.MaxToolCalls {
+						toolResults[i] = message.ToolResult{
+							ToolCallID: toolCall.ID,
+							Content:    fmt.Sprintf("Tool call limit exceeded for %s (max: %d)", toolCall.Name, agentConfig.MaxToolCalls),
+							IsError:    true,
+						}
+						continue
+					}
+				}
+				// Increment tool call counter before execution
+				a.toolCallTracker.IncrementToolCall(sessionID, toolCall.Name)
+			}
+
 			toolResult, toolErr := tool.Run(ctx, tools.ToolCall{
 				ID:    toolCall.ID,
 				Name:  toolCall.Name,
@@ -737,10 +765,12 @@ func NewAgent(
 	}
 
 	agent := &agent{
-		Broker:   pubsub.NewBroker[AgentEvent](),
-		provider: agentProvider,
-		messages: messages,
-		sessions: sessions,
+		Broker:            pubsub.NewBroker[AgentEvent](),
+		agentName:         agentName,
+		provider:          agentProvider,
+		messages:          messages,
+		sessions:          sessions,
+		toolCallTracker:   tools.NewToolCallTracker(),
 		// tools:             agentTools,
 		titleProvider:     titleProvider,
 		summarizeProvider: summarizeProvider,

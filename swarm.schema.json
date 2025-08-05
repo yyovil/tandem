@@ -256,6 +256,12 @@
           "description": "Maximum number of tokens for the agent",
           "minimum": 1
         },
+        "maxToolCalls": {
+          "type": "integer",
+          "description": "Maximum number of tool calls per session for each tool (0 means unlimited)",
+          "minimum": 0,
+          "default": 0
+        },
         "reasoningEffort": {
           "type": "string",
           "description": "Reasoning effort level for models that support it",

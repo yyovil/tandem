@@ -12,6 +12,39 @@ type ToolInfo struct {
 	Required    []string
 }
 
+// ToolCallTracker tracks tool calls per session to enforce limits
+type ToolCallTracker struct {
+	sessionToolCalls map[string]map[string]int // sessionID -> toolName -> count
+}
+
+// NewToolCallTracker creates a new tool call tracker
+func NewToolCallTracker() *ToolCallTracker {
+	return &ToolCallTracker{
+		sessionToolCalls: make(map[string]map[string]int),
+	}
+}
+
+// IncrementToolCall increments the call count for a tool in a session
+func (t *ToolCallTracker) IncrementToolCall(sessionID, toolName string) {
+	if t.sessionToolCalls[sessionID] == nil {
+		t.sessionToolCalls[sessionID] = make(map[string]int)
+	}
+	t.sessionToolCalls[sessionID][toolName]++
+}
+
+// GetToolCallCount returns the number of calls for a tool in a session
+func (t *ToolCallTracker) GetToolCallCount(sessionID, toolName string) int {
+	if t.sessionToolCalls[sessionID] == nil {
+		return 0
+	}
+	return t.sessionToolCalls[sessionID][toolName]
+}
+
+// ResetSession clears the tool call counts for a session
+func (t *ToolCallTracker) ResetSession(sessionID string) {
+	delete(t.sessionToolCalls, sessionID)
+}
+
 type toolResponseType string
 
 type (
