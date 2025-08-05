@@ -79,6 +79,7 @@ type Agent struct {
 	ReasoningEffort string         `json:"reasoningEffort,omitempty"` // For openai models low,medium,high
 	Instructions    []string       `json:"instructions"`
 	Tools           []string       `json:"tools,omitempty"`
+	MaxToolCalls    int            `json:"maxToolCalls,omitempty"`    // Maximum tool calls per session, 0 means unlimited
 }
 
 // Get returns the current configuration.
