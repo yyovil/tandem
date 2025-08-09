@@ -9,10 +9,10 @@ type LogMessage struct {
 	ID          string
 	Time        time.Time
 	Level       string
-	Persist     bool          // used when we want to show the mesage in the status bar
-	PersistTime time.Duration // used when we want to show the mesage in the status bar
-	Message     string        `json:"msg"`
+	Persist     bool
+	PersistTime time.Duration
 	Attributes  []Attr
+	Message     string `json:"msg"`
 }
 
 type Attr struct {

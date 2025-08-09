@@ -112,6 +112,7 @@ func (cli *DockerCli) Run(ctx context.Context, call ToolCall) (ToolResponse, err
 
 	if cli.containerId == "" {
 		summaries, err := cli.client.ContainerList(ctx, container.ListOptions{
+			All:     true,
 			Filters: filters.NewArgs(filters.Arg("ancestor", DockerImage)),
 		})
 		if err != nil {

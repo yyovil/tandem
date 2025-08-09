@@ -126,9 +126,8 @@ func Load(workingDir string, debug bool) (*Config, error) {
 		defaultLevel = slog.LevelDebug
 	}
 
-	// TODO: shouldn't we set this env var if the swarm.json say it so?
 	if cfg.Debug {
-		loggingFile := fmt.Sprintf("%s/%s", cfg.Data.Directory, "debug.log")
+		loggingFile := fmt.Sprintf("%s/%s", cfg.Data.Directory, "debug.json")
 		messagesPath := fmt.Sprintf("%s/%s", cfg.Data.Directory, "messages")
 
 		// if file does not exist create it
@@ -153,7 +152,7 @@ func Load(workingDir string, debug bool) (*Config, error) {
 			return cfg, fmt.Errorf("failed to open log file: %w", err)
 		}
 		// Configure logger
-		logger := slog.New(slog.NewTextHandler(sloggingFileWriter, &slog.HandlerOptions{
+		logger := slog.New(slog.NewJSONHandler(sloggingFileWriter, &slog.HandlerOptions{
 			Level: defaultLevel,
 		}))
 		slog.SetDefault(logger)
@@ -640,7 +639,7 @@ func updateCfgFile(updateCfg func(config *Config)) error {
 	updateCfg(userCfg)
 
 	// Write the updated config back to file
-	updatedData, err := json.MarshalIndent(userCfg, "", "  ")
+	updatedData, err := json.Marshal(userCfg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}

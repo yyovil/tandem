@@ -20,5 +20,8 @@
 
 ## Rough
 - responseSchema and mimeType are provider specific because not every provider supports it. then they are passed while creating the provider client and we gotta do the prop drilling from NewAgent -> createAgentProvider.
+- current implementation of Debug is broken for 2 reasons:
+  - it doesn't formats the json messages recursively.
+
 
 

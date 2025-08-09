@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/yaydraco/tandem/main/swarm.schema.json",
+  "$schema": "../swarm.schema.json",
   "debug": true,
   "providers": {
     "gemini": {
       "apiKey": "${GEMINI_API_KEY}"
     },
     "groq": {
-      "apiKey": "{GROQ_API_KEY}"
+      "apiKey": "${GROQ_API_KEY}"
     }
   },
   "agents": {
@@ -30,7 +30,7 @@
       "agentId": "summarizer",
       "description": "An AI assistant specialized in summarizing conversations and providing context for continuing discussions",
       "goal": "Provide comprehensive yet concise summaries of conversations to maintain context and assist in workflow continuity",
-      "model": "copilot.claude-sonnet-4",
+      "model": "gemini-2.5-flash",
       "instructions": [
         "You are a helpful AI assistant tasked with summarizing conversations.",
         "When asked to summarize, provide a detailed but concise summary of the conversation.",
@@ -57,7 +57,7 @@
     "reconnoiter": {
       "name": "reconnoiter",
       "agentId": "reconnoiter",
-      "model": "moonshotai/kimi-k2-instruct",
+      "model": "gemini-2.5-flash",
       "description": "a seasoned OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance.",
       "goal": "Your goal is to assist the user during the reconnaissance phase of a pentest and finish the tasks assigned.",
       "instructions": [
@@ -73,7 +73,7 @@
     "vulnerability_scanner": {
       "agentId": "vulnerability_scanner",
       "name": "vulnerability_scanner",
-      "model": "moonshotai/kimi-k2-instruct",
+      "model": "gemini-2.5-flash",
       "description": "an AI agent specialized in scanning for vulnerabilities in applications and networks.",
       "goal": "Your goal is to scan for vulnerabilities in applications and networks using kali linux cli tools.",
       "instructions": [],
@@ -84,7 +84,7 @@
     "exploiter": {
       "agentId": "exploiter",
       "name": "exploiter",
-      "model": "moonshotai/kimi-k2-instruct",
+      "model": "gemini-2.5-flash",
       "description": "an AI agent who searches the exploits for the vulnerabilities found and uses them for penetration testing.",
       "goal": "your goal is to search exploits for the vulnerabilities found in the system and execute them to gain the foothold in the target system for further reconnaissance using kali linux tools.",
       "instructions": [],

@@ -181,7 +181,7 @@ func (g *geminiClient) send(ctx context.Context, messages []message.Message, too
 	cfg := config.Get()
 	if cfg.Debug {
 		jsonData, _ := json.Marshal(geminiMessages)
-		logging.Debug("Prepared messages", "messages", string(jsonData))
+		logging.Debug("Prepared messages", "messages", jsonData)
 	}
 
 	history := geminiMessages[:len(geminiMessages)-1] // All but last message

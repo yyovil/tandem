@@ -46,6 +46,7 @@ func (i *detailCmp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	i.viewport.Update(msg)
 	return i, nil
 }
 
@@ -89,7 +90,7 @@ func (i *detailCmp) updateContent() {
 				keyStyle.Render(attr.Key),
 				valueStyle.Render(attr.Value),
 			)
-			content.WriteString(lipgloss.NewStyle().Padding(0, 2).Render(attrLine))
+			content.WriteString(lipgloss.NewStyle().Padding(0, 2).Width(i.width).Render(attrLine))
 			content.WriteString("\n")
 		}
 	}

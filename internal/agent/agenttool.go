@@ -23,7 +23,7 @@ var AgentNames = []string{
 type AgentToolArgs struct {
 	Prompt         string           `json:"prompt"`
 	AgentName      config.AgentName `json:"agent_name,omitempty"`
-	ExpectedOutput map[string]any   `json:"expected_output"`
+	ExpectedOutput string           `json:"expected_output"`
 }
 
 type AgentTool struct {
@@ -45,7 +45,7 @@ func (a *AgentTool) Info() tools.ToolInfo {
 				"description": "ID of the agent to call",
 				"enum":        AgentNames,
 			},
-			// ADHD: asking a llm to predict the json schema in this way is too probabilistic. we need to be more specific about the fields it could have. 
+			// ADHD: asking a llm to predict the json schema in this way is too probabilistic. we need to be more specific about the fields it could have.
 			"expected_output": map[string]any{
 				"type":        "string",
 				"description": "a JSON string representing the schema of the expected output that orchestrator requests the subagent to follow while responding after assigned task is completed.",
@@ -74,9 +74,16 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 		return tools.ToolResponse{}, fmt.Errorf("session_id and message_id are required")
 	}
 
+	var expectedOutput map[string]any
+	if args.ExpectedOutput != "" {
+		if err := json.Unmarshal([]byte(args.ExpectedOutput), &expectedOutput); err != nil {
+			return tools.NewTextErrorResponse("failed to parse expected_output: " + err.Error()), nil
+		}
+	}
+
 	// NOTE: you can add more tools later here if needed on AgentName basis.
 	agentTools := tools.PenetrationTestingAgentTools
-	agent, err := NewAgent(args.AgentName, a.sessions, a.messages, agentTools, args.ExpectedOutput)
+	agent, err := NewAgent(args.AgentName, a.sessions, a.messages, agentTools, expectedOutput)
 	if err != nil {
 		return tools.NewTextErrorResponse("failed to create agent: " + err.Error()), nil
 	}

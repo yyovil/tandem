@@ -76,14 +76,15 @@ func FormatOutput(content string, formatStr string) string {
 
 // formatAsJSON wraps the content in a simple JSON object
 func formatAsJSON(content string) string {
-	// Use the JSON package to properly escape the content
-	response := struct {
+	type jsonResponse struct {
 		Response string `json:"response"`
-	}{
+	}
+
+	response := jsonResponse{
 		Response: content,
 	}
 
-	jsonBytes, err := json.MarshalIndent(response, "", "  ")
+	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		// In case of an error, return a manually formatted JSON
 		jsonEscaped := strings.Replace(content, "\\", "\\\\", -1)
