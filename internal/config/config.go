@@ -67,6 +67,8 @@ const (
 	AgentSummarizer       AgentName = "summarizer"
 	AgentTask             AgentName = "task"
 	AgentTitle            AgentName = "title"
+	VhsAgent              AgentName = "vhs_agent"
+	FreezeAgent           AgentName = "freeze_agent"
 )
 
 type Agent struct {

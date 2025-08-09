@@ -104,6 +104,24 @@
           "title": "Title (Default)",
           "description": "Manages titles and naming conventions"
         },
+        "vhs_agent": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "VHS Agent (Media Generation)",
+          "description": "Generates terminal demonstration videos using VHS (Video Hyper Scripts)"
+        },
+        "freeze_agent": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Agent"
+            }
+          ],
+          "title": "Freeze Agent (Media Generation)", 
+          "description": "Generates beautiful SVG screenshots of code using Freeze"
+        },
         "custom_agent_example": {
           "allOf": [
             {
@@ -302,7 +320,10 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
-        "docker_exec"
+        "docker_exec",
+        "vhs",
+        "freeze", 
+        "git_analysis"
       ]
     }
   }

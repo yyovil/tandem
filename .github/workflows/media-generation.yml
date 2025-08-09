@@ -1,0 +1,167 @@
+name: Automated Media Generation
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      commit_hash:
+        description: 'Specific commit hash to analyze (optional)'
+        required: false
+        type: string
+
+jobs:
+  media-generation:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip media]')"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 10  # Get recent commits for analysis
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          
+      - name: Install VHS
+        run: |
+          curl -s https://api.github.com/repos/charmbracelet/vhs/releases/latest | \
+          grep "browser_download_url.*linux_amd64.tar.gz" | \
+          cut -d '"' -f 4 | \
+          xargs -I {} curl -L {} -o vhs.tar.gz
+          tar -xzf vhs.tar.gz
+          sudo mv vhs /usr/local/bin/
+          vhs --version
+          
+      - name: Install Freeze
+        run: |
+          curl -s https://api.github.com/repos/charmbracelet/freeze/releases/latest | \
+          grep "browser_download_url.*linux_amd64.tar.gz" | \
+          cut -d '"' -f 4 | \
+          xargs -I {} curl -L {} -o freeze.tar.gz
+          tar -xzf freeze.tar.gz
+          sudo mv freeze /usr/local/bin/
+          freeze --version
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb fonts-liberation
+          
+      - name: Setup X virtual framebuffer for VHS
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          
+      - name: Build Tandem
+        run: |
+          go mod download
+          go build -v -o tandem
+          
+      - name: Set up environment
+        run: |
+          mkdir -p media/generated
+          cp .env.example .env || echo "No .env.example found"
+          
+      - name: Generate VHS content
+        env:
+          DISPLAY: ":99"
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          # Use workflow input or latest commit
+          COMMIT_HASH="${{ github.event.inputs.commit_hash || github.sha }}"
+          
+          # Create a prompt for the VHS agent to analyze the commit and generate content
+          PROMPT="Analyze the recent commit ${COMMIT_HASH} and generate a VHS tape script that demonstrates the changes and new features. Focus on creating an engaging terminal recording that showcases the functionality."
+          
+          # Run tandem with VHS agent (non-interactive mode)
+          echo "Running VHS agent for commit analysis and content generation..."
+          timeout 300 ./tandem --prompt "$PROMPT" --output-format json --quiet || echo "VHS generation completed or timed out"
+          
+      - name: Generate Freeze content  
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          # Use workflow input or latest commit
+          COMMIT_HASH="${{ github.event.inputs.commit_hash || github.sha }}"
+          
+          # Create a prompt for the Freeze agent to analyze the commit and generate content
+          PROMPT="Analyze the recent commit ${COMMIT_HASH} and generate SVG screenshots of important code changes using Freeze. Focus on key additions, modifications, and new functionality that would be valuable for documentation."
+          
+          # Run tandem with Freeze agent (non-interactive mode)
+          echo "Running Freeze agent for commit analysis and content generation..."
+          timeout 300 ./tandem --prompt "$PROMPT" --output-format json --quiet || echo "Freeze generation completed or timed out"
+          
+      - name: Organize generated media
+        run: |
+          # Find and organize generated files
+          find . -name "*.gif" -not -path "./node_modules/*" -not -path "./.git/*" -exec cp {} media/generated/ \; 2>/dev/null || true
+          find . -name "*.svg" -not -path "./node_modules/*" -not -path "./.git/*" -exec cp {} media/generated/ \; 2>/dev/null || true
+          
+          # Create a manifest of generated files
+          echo "# Generated Media Files" > media/generated/README.md
+          echo "" >> media/generated/README.md
+          echo "Generated on: $(date)" >> media/generated/README.md
+          echo "Commit: ${{ github.sha }}" >> media/generated/README.md
+          echo "Commit message: ${{ github.event.head_commit.message }}" >> media/generated/README.md
+          echo "" >> media/generated/README.md
+          echo "## Files:" >> media/generated/README.md
+          
+          if ls media/generated/*.gif 1> /dev/null 2>&1; then
+            echo "### VHS Recordings (GIF)" >> media/generated/README.md
+            for file in media/generated/*.gif; do
+              echo "- $(basename "$file")" >> media/generated/README.md
+            done
+            echo "" >> media/generated/README.md
+          fi
+          
+          if ls media/generated/*.svg 1> /dev/null 2>&1; then
+            echo "### Freeze Screenshots (SVG)" >> media/generated/README.md
+            for file in media/generated/*.svg; do
+              echo "- $(basename "$file")" >> media/generated/README.md
+            done
+          fi
+          
+      - name: Upload media artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: generated-media-${{ github.sha }}
+          path: media/generated/
+          retention-days: 30
+          
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const mediaDir = 'media/generated';
+            if (fs.existsSync(mediaDir)) {
+              const files = fs.readdirSync(mediaDir);
+              const mediaFiles = files.filter(file => file.endsWith('.gif') || file.endsWith('.svg'));
+              
+              if (mediaFiles.length > 0) {
+                let comment = `## 🎬 Automated Media Generation\n\n`;
+                comment += `New media content has been generated for this PR:\n\n`;
+                
+                for (const file of mediaFiles) {
+                  comment += `- 📎 \`${file}\`\n`;
+                }
+                
+                comment += `\n> Media files are available as workflow artifacts and can be downloaded from the Actions tab.`;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            }

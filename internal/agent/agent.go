@@ -712,7 +712,6 @@ func NewAgent(
 	agentName config.AgentName,
 	sessions session.Service,
 	messages message.Service,
-	// agentTools []tools.BaseTool,
 ) (Service, error) {
 	agentProvider, err := createAgentProvider(agentName)
 	if err != nil {
@@ -736,12 +735,20 @@ func NewAgent(
 		}
 	}
 
+	// Get tools for the agent
+	cfg := config.Get()
+	agentConfig, ok := cfg.Agents[agentName]
+	var agentTools []tools.BaseTool
+	if ok && len(agentConfig.Tools) > 0 {
+		agentTools = tools.GetToolsForAgent(agentConfig.Tools)
+	}
+
 	agent := &agent{
-		Broker:   pubsub.NewBroker[AgentEvent](),
-		provider: agentProvider,
-		messages: messages,
-		sessions: sessions,
-		// tools:             agentTools,
+		Broker:            pubsub.NewBroker[AgentEvent](),
+		provider:          agentProvider,
+		messages:          messages,
+		sessions:          sessions,
+		tools:             agentTools,
 		titleProvider:     titleProvider,
 		summarizeProvider: summarizeProvider,
 		activeRequests:    sync.Map{},
