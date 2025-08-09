@@ -208,6 +208,7 @@ func (m *messagesCmp) renderView() {
 			assistantMessages := renderAssistantMessage(
 				msg,
 				m.messages,
+				m.app.Messages,
 				isSummary,
 				width,
 				pos,

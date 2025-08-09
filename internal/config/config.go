@@ -154,12 +154,25 @@ func Load(workingDir string, debug bool) (*Config, error) {
 		// Configure logger
 		logger := slog.New(slog.NewJSONHandler(sloggingFileWriter, &slog.HandlerOptions{
 			Level: defaultLevel,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					t := a.Value.Time()
+					a.Value = slog.StringValue(t.Local().Format(logging.HumanTimeLayout))
+				}
+				return a
+			},
 		}))
 		slog.SetDefault(logger)
 	} else {
-		// Configure logger
 		logger := slog.New(slog.NewTextHandler(logging.NewWriter(), &slog.HandlerOptions{
 			Level: defaultLevel,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					t := a.Value.Time()
+					a.Value = slog.StringValue(t.Local().Format(logging.HumanTimeLayout))
+				}
+				return a
+			},
 		}))
 		slog.SetDefault(logger)
 	}

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/yaydraco/tandem/internal/agent"
 	"github.com/yaydraco/tandem/internal/message"
 	"github.com/yaydraco/tandem/internal/tools"
 	"github.com/yaydraco/tandem/internal/tui/styles"
@@ -121,6 +123,7 @@ func renderUserMessage(msg message.Message, width int, position int) uiMessage {
 func renderAssistantMessage(
 	msg message.Message,
 	allMessages []message.Message, // we need this to get tool results and the user message
+	messageService message.Service,
 	isSummary bool,
 	width int,
 	position int,
@@ -194,6 +197,7 @@ func renderAssistantMessage(
 		toolCallContent := renderToolMessage(
 			toolCall,
 			allMessages,
+			messageService,
 			false,
 			width,
 			i+1,
@@ -223,8 +227,8 @@ func toolName(name string) string {
 func getToolAction(name string) string {
 	switch name {
 
-	// case agent.AgentToolName:
-	// 	return "Preparing prompt..."
+	case agent.AgentToolName:
+		return "Preparing prompt..."
 	case tools.DockerCliToolName:
 		return "Executing command..."
 		// TODO: Impl the edit tool. used by project manager.
@@ -280,11 +284,11 @@ func renderParams(paramsWidth int, params ...string) string {
 func renderToolParams(paramWidth int, toolCall message.ToolCall) string {
 	params := ""
 	switch toolCall.Name {
-	// case agent.AgentToolName:
-	// 	var params agent.AgentParams
-	// 	json.Unmarshal([]byte(toolCall.Input), &params)
-	// 	prompt := strings.ReplaceAll(params.Prompt, "\n", " ")
-	// 	return renderParams(paramWidth, prompt)
+	case agent.AgentToolName:
+		var params agent.AgentToolArgs
+		json.Unmarshal([]byte(toolCall.Input), &params)
+		prompt := strings.ReplaceAll(params.Prompt, "\n", " ")
+		return renderParams(paramWidth, prompt)
 	case tools.DockerCliToolName:
 		var params tools.DockerCliArgs
 		json.Unmarshal([]byte(toolCall.Input), &params)
@@ -326,11 +330,11 @@ func renderToolResponse(toolCall message.ToolCall, response message.ToolResult, 
 
 	resultContent := truncateHeight(response.Content, maxResultHeight)
 	switch toolCall.Name {
-	// case agent.AgentToolName:
-	// 	return styles.ForceReplaceBackgroundWithLipgloss(
-	// 		toMarkdown(resultContent, false, width),
-	// 		t.Background(),
-	// 	)
+	case agent.AgentToolName:
+		return styles.ForceReplaceBackgroundWithLipgloss(
+			toMarkdown(resultContent, width),
+			t.Background(),
+		)
 	case tools.DockerCliToolName:
 		// NOTE: by default, we are going to get a bash shell but then dependending on the type of shell to be used, as configured by the user, it should be mentioned in here.
 		resultContent = fmt.Sprintf("```bash\n%s\n```", resultContent)
@@ -357,6 +361,7 @@ func renderToolResponse(toolCall message.ToolCall, response message.ToolResult, 
 func renderToolMessage(
 	toolCall message.ToolCall,
 	allMessages []message.Message,
+	messagesService message.Service,
 	nested bool,
 	width int,
 	position int,
@@ -430,17 +435,18 @@ func renderToolMessage(
 		parts = append(parts, lipgloss.JoinHorizontal(lipgloss.Left, prefix, toolNameText, formattedParams))
 	}
 
-	// if toolCall.Name == agent.AgentToolName {
-	// 	taskMessages, _ := messagesService.List(context.Background(), toolCall.ID)
-	// 	toolCalls := []message.ToolCall{}
-	// 	for _, v := range taskMessages {
-	// 		toolCalls = append(toolCalls, v.ToolCalls()...)
-	// 	}
-	// 	for _, call := range toolCalls {
-	// 		rendered := renderToolMessage(call, []message.Message{}, messagesService, focusedUIMessageId, true, width, 0)
-	// 		parts = append(parts, rendered.content)
-	// 	}
-	// }
+	if toolCall.Name == agent.AgentToolName {
+		taskMessages, _ := messagesService.List(context.Background(), toolCall.ID)
+		toolCalls := []message.ToolCall{}
+		for _, v := range taskMessages {
+			toolCalls = append(toolCalls, v.ToolCalls()...)
+		}
+		for _, call := range toolCalls {
+			rendered := renderToolMessage(call, []message.Message{}, messagesService, true, width, 0)
+			parts = append(parts, rendered.content)
+		}
+	}
+
 	if responseContent != "" && !nested {
 		parts = append(parts, responseContent)
 	}
@@ -466,26 +472,14 @@ func renderToolMessage(
 	return toolMsg
 }
 
-// Helper function to format the time difference between two Unix timestamps
-func formatTimestampDiff(start, end int64) string {
-	diffSeconds := float64(end-start) / 1000.0 // Convert to seconds
-	if diffSeconds < 1 {
-		return fmt.Sprintf("%dms", int(diffSeconds*1000))
-	}
-	if diffSeconds < 60 {
-		return fmt.Sprintf("%.1fs", diffSeconds)
-	}
-	return fmt.Sprintf("%.1fm", diffSeconds/60)
-}
-
 // Helper function to format the time difference in human-readable format
 func formatTimestampDiffSeconds(start, end int64) string {
 	diffSeconds := int(float64(end-start) / 1000.0) // Convert to seconds
-	
+
 	if diffSeconds < 60 {
 		return fmt.Sprintf("%ds", diffSeconds)
 	}
-	
+
 	if diffSeconds < 3600 {
 		minutes := diffSeconds / 60
 		seconds := diffSeconds % 60
@@ -494,7 +488,7 @@ func formatTimestampDiffSeconds(start, end int64) string {
 		}
 		return fmt.Sprintf("%dm%ds", minutes, seconds)
 	}
-	
+
 	hours := diffSeconds / 3600
 	remainingSeconds := diffSeconds % 3600
 	minutes := remainingSeconds / 60

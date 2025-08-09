@@ -264,7 +264,7 @@
       "type": "string",
       "description": "Tool definition for agent capabilities",
       "enum": [
-        "docker_cli",
+        "terminal",
         "agent_tool"
       ]
     }

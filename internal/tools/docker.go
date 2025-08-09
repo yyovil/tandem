@@ -20,7 +20,7 @@ TODO: implement docker_cli adhering to the BaseTool interface.
 */
 
 const (
-	DockerCliToolName = "docker_cli"
+	DockerCliToolName = "terminal"
 	DockerImage       = "kali:withtools"
 )
 
@@ -161,6 +161,8 @@ func (cli *DockerCli) Run(ctx context.Context, call ToolCall) (ToolResponse, err
 		defer hijackedResp.Close()
 		cli.hijackedResponse = &hijackedResp
 	}
+
+	logging.Debug(fmt.Sprintf("running in container %s: %s", cli.containerId, strings.TrimSpace(commandLine)))
 
 	if _, err := cli.hijackedResponse.Conn.Write([]byte(commandLine)); err != nil {
 		return NewTextErrorResponse("Failed to write command to container: " + err.Error()), nil

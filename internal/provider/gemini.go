@@ -180,8 +180,8 @@ func (g *geminiClient) send(ctx context.Context, messages []message.Message, too
 
 	cfg := config.Get()
 	if cfg.Debug {
-		jsonData, _ := json.Marshal(geminiMessages)
-		logging.Debug("Prepared messages", "messages", jsonData)
+		// Log structured messages directly so JSON handler encodes them once (no base64 / escaping)
+		logging.Debug("Prepared messages", "messages", geminiMessages)
 	}
 
 	history := geminiMessages[:len(geminiMessages)-1] // All but last message
@@ -261,8 +261,8 @@ func (g *geminiClient) stream(ctx context.Context, messages []message.Message, t
 
 	cfg := config.Get()
 	if cfg.Debug {
-		jsonData, _ := json.Marshal(geminiMessages)
-		logging.Debug("Prepared messages", "messages", string(jsonData))
+		// Log structured messages directly so JSON handler encodes them once (no base64 / escaping)
+		logging.Debug("Prepared messages", "messages", geminiMessages)
 	}
 
 	history := geminiMessages[:len(geminiMessages)-1] // All but last message

@@ -67,7 +67,7 @@
         "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash."
       ],
       "tools": [
-        "docker_cli"
+        "terminal"
       ]
     },
     "vulnerability_scanner": {
@@ -78,7 +78,7 @@
       "goal": "Your goal is to scan for vulnerabilities in applications and networks using kali linux cli tools.",
       "instructions": [],
       "tools": [
-        "docker_cli"
+        "terminal"
       ]
     },
     "exploiter": {
@@ -89,7 +89,7 @@
       "goal": "your goal is to search exploits for the vulnerabilities found in the system and execute them to gain the foothold in the target system for further reconnaissance using kali linux tools.",
       "instructions": [],
       "tools": [
-        "docker_cli"
+        "terminal"
       ]
     },
     "reporter": {

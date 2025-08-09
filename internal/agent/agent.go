@@ -546,6 +546,15 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 				Input: toolCall.Input,
 			})
 
+			logging.Debug(
+				"Tool result",
+				"sessionID", sessionID,
+				"tool", toolCall.Name,
+				"toolCallID", toolCall.ID,
+				"isError", toolResult.IsError,
+				"content", toolResult.Content,
+				"metadata", toolResult.Metadata,
+			)
 			// TODO: Figure out how to finish message when tool execution fails. earlier we were appending the finish message only when its of the type permission denied.
 			// if toolErr != nil {}
 

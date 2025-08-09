@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// HumanTimeLayout is the simplified timestamp format used in logs.
+const HumanTimeLayout = "2006-01-02 15:04:05"
+
 func Error(msg string, args ...any) {
 	slog.Error(msg, args...)
 }

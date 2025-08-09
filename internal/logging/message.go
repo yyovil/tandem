@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// LogMessage is the event payload for a log message
 type LogMessage struct {
 	ID          string
 	Time        time.Time
