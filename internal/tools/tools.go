@@ -82,3 +82,43 @@ func GetContextValues(ctx context.Context) (string, string) {
 	}
 	return sessionID.(string), messageID.(string)
 }
+
+// ToolRegistry manages available tools
+type ToolRegistry struct {
+	tools map[string]func() BaseTool
+}
+
+var globalRegistry = &ToolRegistry{
+	tools: make(map[string]func() BaseTool),
+}
+
+// RegisterTool registers a tool constructor with the global registry
+func RegisterTool(name string, constructor func() BaseTool) {
+	globalRegistry.tools[name] = constructor
+}
+
+// GetTool creates a tool instance by name
+func GetTool(name string) BaseTool {
+	if constructor, exists := globalRegistry.tools[name]; exists {
+		return constructor()
+	}
+	return nil
+}
+
+// GetToolsForAgent returns the tools configured for a specific agent
+func GetToolsForAgent(toolNames []string) []BaseTool {
+	var tools []BaseTool
+	for _, name := range toolNames {
+		if tool := GetTool(name); tool != nil {
+			tools = append(tools, tool)
+		}
+	}
+	return tools
+}
+
+// InitializeTools registers all available tools
+func InitializeTools() {
+	RegisterTool(VhsToolName, NewVhsTool)
+	RegisterTool(FreezeToolName, NewFreezeTool)
+	RegisterTool(GitAnalysisToolName, NewGitAnalysisTool)
+}

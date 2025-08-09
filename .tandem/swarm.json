@@ -64,6 +64,44 @@
         "tasks assignments should be explicit and self contained",
         "agent should be given tasks based on its expertise"
       ]
+    },
+    "vhs_agent": {
+      "name": "VHS Media Generator",
+      "agentId": "vhs_agent",
+      "model": "copilot.claude-sonnet-4",
+      "description": "An AI agent specialized in generating terminal demonstration videos using VHS (Video Hyper Scripts). Creates engaging showcase content for new features and functionality.",
+      "goal": "Generate compelling terminal recordings that demonstrate new features and changes in the codebase using VHS tape scripts.",
+      "instructions": [
+        "Analyze git commits and changes to understand new features being added",
+        "Create VHS tape scripts that showcase the functionality in an engaging way",
+        "Focus on demonstrating practical usage scenarios and workflows",
+        "Ensure recordings are clear, well-paced, and informative",
+        "Use appropriate terminal themes and settings for professional presentation",
+        "Include context and narration through typing to explain what's being demonstrated"
+      ],
+      "tools": [
+        "git_analysis",
+        "vhs"
+      ]
+    },
+    "freeze_agent": {
+      "name": "Freeze SVG Generator",
+      "agentId": "freeze_agent", 
+      "model": "copilot.gpt-4o-mini",
+      "description": "An AI agent specialized in generating beautiful SVG screenshots of code using Freeze. Creates syntax-highlighted code images for documentation and demos.",
+      "goal": "Generate aesthetically pleasing SVG images of code snippets that highlight key changes and new functionality.",
+      "instructions": [
+        "Analyze git commits to identify important code changes and new features",
+        "Select representative code snippets that showcase the changes effectively",
+        "Generate SVG images with appropriate syntax highlighting and themes",
+        "Ensure code snippets are focused and tell a clear story about the changes",
+        "Use consistent styling and themes across generated images",
+        "Prioritize readability and visual appeal in the generated screenshots"
+      ],
+      "tools": [
+        "git_analysis", 
+        "freeze"
+      ]
     }
   }
 }

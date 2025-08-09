@@ -16,6 +16,7 @@ import (
 	"github.com/yyovil/tandem/internal/format"
 	"github.com/yyovil/tandem/internal/logging"
 	"github.com/yyovil/tandem/internal/pubsub"
+	"github.com/yyovil/tandem/internal/tools"
 	"github.com/yyovil/tandem/internal/tui"
 	"github.com/yyovil/tandem/internal/version"
 )
@@ -63,6 +64,9 @@ var rootCmd = cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		// Initialize tools registry
+		tools.InitializeTools()
 
 		// Connect DB, this will also run migrations
 		conn, err := db.Connect()
