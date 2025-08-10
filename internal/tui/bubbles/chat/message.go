@@ -123,7 +123,7 @@ func renderUserMessage(msg message.Message, width int, position int) uiMessage {
 func renderAssistantMessage(
 	msg message.Message,
 	allMessages []message.Message, // we need this to get tool results and the user message
-	messageService message.Service,
+	messagesService message.Service,
 	isSummary bool,
 	width int,
 	position int,
@@ -197,7 +197,7 @@ func renderAssistantMessage(
 		toolCallContent := renderToolMessage(
 			toolCall,
 			allMessages,
-			messageService,
+			messagesService,
 			false,
 			width,
 			i+1,
@@ -229,7 +229,7 @@ func getToolAction(name string) string {
 
 	case agent.AgentToolName:
 		return "Preparing prompt..."
-	case tools.DockerCliToolName:
+	case tools.TerminalToolName:
 		return "Executing command..."
 		// TODO: Impl the edit tool. used by project manager.
 		// case tools.EditToolName:
@@ -289,8 +289,8 @@ func renderToolParams(paramWidth int, toolCall message.ToolCall) string {
 		json.Unmarshal([]byte(toolCall.Input), &params)
 		prompt := strings.ReplaceAll(params.Prompt, "\n", " ")
 		return renderParams(paramWidth, prompt)
-	case tools.DockerCliToolName:
-		var params tools.DockerCliArgs
+	case tools.TerminalToolName:
+		var params tools.TerminalArgs
 		json.Unmarshal([]byte(toolCall.Input), &params)
 		command := strings.ReplaceAll(params.Command, "\n", " ")
 		return renderParams(paramWidth, command)
@@ -335,7 +335,7 @@ func renderToolResponse(toolCall message.ToolCall, response message.ToolResult, 
 			toMarkdown(resultContent, width),
 			t.Background(),
 		)
-	case tools.DockerCliToolName:
+	case tools.TerminalToolName:
 		// NOTE: by default, we are going to get a bash shell but then dependending on the type of shell to be used, as configured by the user, it should be mentioned in here.
 		resultContent = fmt.Sprintf("```bash\n%s\n```", resultContent)
 		return styles.ForceReplaceBackgroundWithLipgloss(
@@ -500,6 +500,13 @@ func formatTimestampDiffSeconds(start, end int64) string {
 
 // Helper function to format timestamp as HH:MM AM/PM
 func formatTimeFromTimestamp(timestamp int64) string {
-	t := time.Unix(timestamp/1000, 0) // Convert from milliseconds to seconds
+	// normalize to milliseconds
+	if timestamp > 0 && timestamp < 1e11 { // seconds
+		timestamp *= 1000
+	}
+	if timestamp <= 0 {
+		return ""
+	}
+	t := time.UnixMilli(timestamp)
 	return t.Format("3:04 PM")
 }

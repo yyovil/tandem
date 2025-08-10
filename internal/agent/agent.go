@@ -72,7 +72,7 @@ func (a *agent) Model() models.Model {
 	return a.provider.Model()
 }
 
-func (a *agent) Run(ctx context.Context, sessionID string, content string, attachments ...message.Attachment) (<-chan AgentEvent, error) {
+func (a *agent) Run(ctx context.Context, sessionID string, prompt string, attachments ...message.Attachment) (<-chan AgentEvent, error) {
 	if !a.provider.Model().SupportsAttachments && attachments != nil {
 		attachments = nil
 	}
@@ -85,7 +85,7 @@ func (a *agent) Run(ctx context.Context, sessionID string, content string, attac
 
 	a.activeRequests.Store(sessionID, cancel)
 	go func() {
-		logging.Debug("Request started", "sessionID", sessionID)
+		logging.Info("Request started", "sessionID", sessionID)
 		defer logging.RecoverPanic("agent.Run", func() {
 			events <- a.err(fmt.Errorf("panic while running the agent"))
 		})
@@ -93,11 +93,11 @@ func (a *agent) Run(ctx context.Context, sessionID string, content string, attac
 		for _, attachment := range attachments {
 			attachmentParts = append(attachmentParts, message.BinaryContent{Path: attachment.FilePath, MIMEType: attachment.MimeType, Data: attachment.Content})
 		}
-		result := a.processGeneration(genCtx, sessionID, content, attachmentParts)
+		result := a.processGeneration(genCtx, sessionID, prompt, attachmentParts)
 		if result.Error != nil && !errors.Is(result.Error, ErrRequestCancelled) && !errors.Is(result.Error, context.Canceled) {
 			logging.ErrorPersist(result.Error.Error())
 		}
-		logging.Debug("Request completed", "sessionID", sessionID)
+		logging.Info("Request completed", "sessionID", sessionID)
 		a.activeRequests.Delete(sessionID)
 		cancel()
 		a.Publish(pubsub.CreatedEvent, result)
@@ -107,7 +107,7 @@ func (a *agent) Run(ctx context.Context, sessionID string, content string, attac
 	return events, nil
 }
 
-func (a *agent) processGeneration(ctx context.Context, sessionID, content string, attachmentParts []message.ContentPart) AgentEvent {
+func (a *agent) processGeneration(ctx context.Context, sessionID, prompt string, attachmentParts []message.ContentPart) AgentEvent {
 	cfg := config.Get()
 	// List existing messages; if none, start title generation asynchronously.
 	msgs, err := a.messages.List(ctx, sessionID)
@@ -119,7 +119,7 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 			defer logging.RecoverPanic("agent.Run", func() {
 				logging.ErrorPersist("panic while generating title")
 			})
-			titleErr := a.generateTitle(context.Background(), sessionID, content)
+			titleErr := a.generateTitle(context.Background(), sessionID, prompt)
 			if titleErr != nil {
 				logging.ErrorPersist(fmt.Sprintf("failed to generate title: %v", titleErr))
 			}
@@ -143,7 +143,7 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 		}
 	}
 
-	userMsg, err := a.createUserMessage(ctx, sessionID, content, attachmentParts)
+	userMsg, err := a.createUserMessage(ctx, sessionID, prompt, attachmentParts)
 	if err != nil {
 		return a.err(fmt.Errorf("failed to create user message: %w", err))
 	}
@@ -159,6 +159,14 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 			// Continue processing
 		}
 		agentMessage, toolResults, err := a.streamAndHandleEvents(ctx, sessionID, msgHistory)
+
+		logging.Debug(
+			"AgentMessage",
+			"content", agentMessage.Content(),
+			"finishReason", agentMessage.FinishReason(),
+			"toolCalls", agentMessage.ToolCalls(),
+		)
+
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				agentMessage.AddFinish(message.FinishReasonCanceled)
@@ -167,6 +175,7 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 			}
 			return a.err(fmt.Errorf("failed to process events: %w", err))
 		}
+
 		if cfg.Debug {
 			seqId := (len(msgHistory) + 1) / 2
 			toolResultFilepath := logging.WriteToolResultsJson(sessionID, seqId, toolResults)
@@ -174,11 +183,13 @@ func (a *agent) processGeneration(ctx context.Context, sessionID, content string
 		} else {
 			logging.Info("Result", "message", agentMessage.FinishReason(), "toolResults", toolResults)
 		}
+
 		if (agentMessage.FinishReason() == message.FinishReasonToolUse) && toolResults != nil {
 			// We are not done, we need to respond with the tool response
 			msgHistory = append(msgHistory, agentMessage, *toolResults)
 			continue
 		}
+
 		return AgentEvent{
 			Type:    AgentEventTypeResponse,
 			Message: agentMessage,
@@ -485,7 +496,6 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 	// Add the session and message ID into the context if needed by tools.
 	ctx = context.WithValue(ctx, tools.MessageIDContextKey, assistantMsg.ID)
 
-	// Process each event in the stream.
 	for event := range eventChan {
 		if processErr := a.processEvent(ctx, sessionID, &assistantMsg, event); processErr != nil {
 			a.finishMessage(ctx, &assistantMsg, message.FinishReasonCanceled)
@@ -500,12 +510,10 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 	toolResults := make([]message.ToolResult, len(assistantMsg.ToolCalls()))
 	toolCalls := assistantMsg.ToolCalls()
 
-	// NOTE: Executing predicted tool calls by the agent.
 	for i, toolCall := range toolCalls {
 		select {
 		case <-ctx.Done():
 			a.finishMessage(context.Background(), &assistantMsg, message.FinishReasonCanceled)
-			// Make all future tool calls cancelled
 			for j := i; j < len(toolCalls); j++ {
 				toolResults[j] = message.ToolResult{
 					ToolCallID: toolCalls[j].ID,
@@ -515,7 +523,6 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 			}
 			goto out
 		default:
-			// Continue processing
 			var tool tools.BaseTool
 			for _, availableTool := range a.tools {
 				if availableTool.Info().Name == toolCall.Name {
@@ -539,8 +546,8 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 				}
 				continue
 			}
-			// toolResult, toolErr := tool.Run(ctx, tools.ToolCall{
-			toolResult, _ := tool.Run(ctx, tools.ToolCall{
+
+			toolResult, toolErr := tool.Run(ctx, tools.ToolCall{
 				ID:    toolCall.ID,
 				Name:  toolCall.Name,
 				Input: toolCall.Input,
@@ -548,15 +555,22 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 
 			logging.Debug(
 				"Tool result",
-				"sessionID", sessionID,
 				"tool", toolCall.Name,
-				"toolCallID", toolCall.ID,
 				"isError", toolResult.IsError,
 				"content", toolResult.Content,
 				"metadata", toolResult.Metadata,
 			)
-			// TODO: Figure out how to finish message when tool execution fails. earlier we were appending the finish message only when its of the type permission denied.
-			// if toolErr != nil {}
+
+			if toolErr != nil {
+				toolResults[i] = message.ToolResult{
+					IsError:    true,
+					ToolCallID: toolCall.ID,
+					Content:    toolErr.Error(),
+					Metadata:   toolResult.Metadata,
+				}
+				a.finishMessage(ctx, &assistantMsg, message.FinishReasonToolError)
+				break
+			}
 
 			toolResults[i] = message.ToolResult{
 				ToolCallID: toolCall.ID,

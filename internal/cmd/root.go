@@ -79,7 +79,6 @@ var rootCmd = cobra.Command{
 			logging.Error("Failed to create app: %v", err)
 			return err
 		}
-		
 
 		// Initialize MCP tools early for both modes
 		// initMCPTools(ctx, app)
@@ -151,7 +150,7 @@ var rootCmd = cobra.Command{
 			return fmt.Errorf("TUI error: %v", err)
 		}
 
-		logging.Info("TUI exited with result: %v", result)
+		logging.Info("TUI exited", "result", result)
 		return nil
 	},
 }

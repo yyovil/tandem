@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/yaydraco/tandem/internal/config"
 	"github.com/yaydraco/tandem/internal/logging"
@@ -12,7 +13,7 @@ import (
 	"github.com/yaydraco/tandem/internal/tools"
 )
 
-const AgentToolName = "agent_tool"
+const AgentToolName = "subagent"
 
 var AgentNames = []string{
 	string(config.Reconnoiter),
@@ -61,11 +62,8 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 		return tools.NewTextErrorResponse("failed to parse agent tool parameters: " + err.Error()), nil
 	}
 
-	// Validate the agent name
-	for _, agentName := range AgentNames {
-		if args.AgentName == config.AgentName(agentName) {
-			break
-		}
+	// Validate agent name using slices.Contains
+	if !slices.Contains(AgentNames, string(args.AgentName)) {
 		return tools.NewTextErrorResponse("invalid agent name: " + string(args.AgentName)), nil
 	}
 
@@ -81,16 +79,17 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 		return tools.NewTextErrorResponse("failed to create agent: " + err.Error()), nil
 	}
 
-	session, err := a.sessions.CreateTaskSession(ctx, call.ID, sessionID, "New Agent Session")
+	session, err := a.sessions.CreateTaskSession(ctx, call.ID, sessionID, fmt.Sprintf("%s agent's session", args.AgentName))
 	if err != nil {
 		return tools.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
 	}
 
-	logging.Debug("using agent", "name", args.AgentName, "busy", agent.IsBusy())
 	done, err := agent.Run(ctx, session.ID, args.Prompt)
 	if err != nil {
 		return tools.ToolResponse{}, fmt.Errorf("error generating agent: %s", err)
 	}
+
+	logging.Debug("using agent", "name", args.AgentName, "busy", agent.IsBusy())
 	result := <-done
 	logging.Debug("task done by agent", "name", args.AgentName, "busy", agent.IsBusy())
 	if result.Error != nil {

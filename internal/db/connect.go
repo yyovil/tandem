@@ -47,7 +47,7 @@ func Connect() (*sql.DB, error) {
 		if _, err = db.Exec(pragma); err != nil {
 			logging.Error("Failed to set pragma", pragma, err)
 		} else {
-			logging.Debug("Set pragma", "pragma", pragma)
+			logging.Info("Set pragma", "pragma", pragma)
 		}
 	}
 

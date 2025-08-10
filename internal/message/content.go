@@ -42,6 +42,7 @@ const (
 	FinishReasonEndTurn          FinishReason = "end_turn"
 	FinishReasonMaxTokens        FinishReason = "max_tokens"
 	FinishReasonToolUse          FinishReason = "tool_use"
+	FinishReasonToolError        FinishReason = "tool_error"
 	FinishReasonCanceled         FinishReason = "canceled"
 	FinishReasonError            FinishReason = "error"
 	FinishReasonPermissionDenied FinishReason = "permission_denied"
@@ -132,7 +133,8 @@ func (m *Message) AddFinish(reason FinishReason) {
 			break
 		}
 	}
-	m.Parts = append(m.Parts, Finish{Reason: reason, Time: time.Now().Unix()})
+	// NOTE: store finish time in milliseconds for consistency with UI expectations
+	m.Parts = append(m.Parts, Finish{Reason: reason, Time: time.Now().UnixMilli()})
 }
 
 func (m *Message) AppendReasoningContent(delta string) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yaydraco/tandem/internal/db"
@@ -53,6 +54,8 @@ func (s *service) Create(ctx context.Context, sessionID string, params CreateMes
 	if err != nil {
 		return Message{}, err
 	}
+	// capture current time in milliseconds to override seconds precision from DB default
+	nowMs := time.Now().UnixMilli()
 	dbMessage, err := s.q.CreateMessage(ctx, db.CreateMessageParams{
 		ID:        uuid.New().String(),
 		SessionID: sessionID,
@@ -67,6 +70,9 @@ func (s *service) Create(ctx context.Context, sessionID string, params CreateMes
 	if err != nil {
 		return Message{}, err
 	}
+	// overwrite created/updated with millisecond precision
+	message.CreatedAt = nowMs
+	message.UpdatedAt = nowMs
 	s.Publish(pubsub.CreatedEvent, message)
 	return message, nil
 }
@@ -185,6 +191,8 @@ func (s *service) Update(ctx context.Context, message Message) error {
 	if err != nil {
 		return err
 	}
+	// ensure updated at has millisecond precision
+	message.UpdatedAt = time.Now().UnixMilli()
 	s.Publish(pubsub.UpdatedEvent, message)
 	return nil
 }

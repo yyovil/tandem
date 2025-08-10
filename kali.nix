@@ -22,7 +22,8 @@ pkgs.dockerTools.buildLayeredImage {
     dirb
     metasploit
     nano
-    nettools2
     nikto
+    exploitdb
+    enum4linux
   ];
 }

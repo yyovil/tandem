@@ -265,7 +265,7 @@
       "description": "Tool definition for agent capabilities",
       "enum": [
         "terminal",
-        "agent_tool"
+        "subagent"
       ]
     }
   }

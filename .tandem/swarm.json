@@ -19,10 +19,11 @@
       "instructions": [
         "tasks assignments should include what tools and techniques to be used by the subagent",
         "agent should be given tasks based on its expertise",
-        "use [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema) for predicting the expected_output schema"
+        "use [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema) for predicting the expected_output schema",
+        "follow Single Responsibility Principle (SRP) for each agent while assigning them task"
       ],
       "tools": [
-        "agent_tool"
+        "subagent"
       ]
     },
     "summarizer": {
