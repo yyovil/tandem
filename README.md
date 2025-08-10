@@ -48,23 +48,23 @@ The following AI providers are supported:
 
 **Orchestrator Agent**
 - **Role**: Coordinates and assigns penetration testing tasks to specialized agents
-- **Purpose**: Translates user objectives (RoE + chat) into concrete task briefs with suggested tools & techniques; dispatches work to other agents and tracks progress
-- **Tools**: agent_tool (used to delegate tasks)
+- **Purpose**: Translates user objectives (RoE + chat) into concrete task briefs with suggested tools & techniques; dispatches work to other agents an*d tracks progress
+- **Tools**: subagent (delegates tasks to other agents)
 
-**Reconnoiter Agent (Fredrick Russell Burnham)**
-- **Role**: OffSec-style penetration tester focused on reconnaissance
+**Reconnoiter Agent**
+- **Role**: Seasoned OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance
 - **Purpose**: Performs reconnaissance (network/service enumeration, OSINT, surface mapping) to build target knowledge for later phases
-- **Tools**: Kali Linux CLI tooling executed via docker_cli
+- **Tools**: terminal (Kali Linux CLI tooling)
 
 **Vulnerability Scanner Agent**
 - **Role**: Vulnerability assessment specialist
 - **Purpose**: Runs targeted scans to identify, categorize, and prioritize vulnerabilities discovered during reconnaissance
-- **Tools**: Kali Linux CLI tooling via docker_cli
+- **Tools**: terminal (Kali Linux CLI tooling)
 
 **Exploiter Agent**
 - **Role**: Exploitation specialist
 - **Purpose**: Researches viable exploits for identified vulnerabilities and executes them to gain footholds / escalate access within the allowed RoE boundaries
-- **Tools**: Kali Linux CLI tooling via docker_cli
+- **Tools**: terminal (Kali Linux CLI tooling)
 
 **Reporter Agent**
 - **Role**: Reporting & analysis specialist
