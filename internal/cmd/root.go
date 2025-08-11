@@ -165,6 +165,7 @@ func setupSubscriptions(app *app.App, parentCtx context.Context) (chan tea.Msg, 
 	setupSubscriber(ctx, &wg, "sessions", app.Sessions.Subscribe, ch)
 	setupSubscriber(ctx, &wg, "messages", app.Messages.Subscribe, ch)
 	setupSubscriber(ctx, &wg, "orchestrator", app.Orchestrator.Subscribe, ch)
+	setupSubscriber(ctx, &wg, "subagents", app.SubAgents.Subscribe, ch)
 
 	cleanupFunc := func() {
 		logging.Info("Cancelling all subscriptions")
