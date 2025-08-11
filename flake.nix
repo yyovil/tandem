@@ -22,11 +22,6 @@
             vagrant
             starship
             sqlc
-            gh
-
-            # TODO:
-            # docker_25
-            # vbox provider.
           ];
 
           shellHook = ''
@@ -36,11 +31,6 @@
             export PATH="$GOPATH/bin:$PATH"
             export GOBIN="$GOPATH/bin"
             eval "$(starship init bash)"
-
-            # TODO:
-            # include dockerd and docker start cmds.
-            # build the kali image and load it into docker.
-            # install the project level deps.
           '';
         };
     };

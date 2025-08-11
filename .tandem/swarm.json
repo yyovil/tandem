@@ -4,9 +4,6 @@
   "providers": {
     "gemini": {
       "apiKey": "${GEMINI_API_KEY}"
-    },
-    "groq": {
-      "apiKey": "${GROQ_API_KEY}"
     }
   },
   "agents": {
@@ -14,7 +11,7 @@
       "name": "orchestrator",
       "agentId": "orchestrator",
       "model": "gemini-2.5-flash",
-      "description": "an agents orchestrator in a multi-agent penetration testing firm run autonomously by AI.",
+      "description": "an agents orchestrator in a multi-agent penetration testing firm called as Tandem run autonomously by AI.",
       "goal": "Assign penetration test related tasks like performing particular types of scans, searching for vulnerabilities and assessing them, searching for exploits and using them, gaining foothold post exploitation, documenting all the findings during the engagement etc to ai agents.",
       "instructions": [
         "tasks assignments should include what tools and techniques to be used by the subagent",

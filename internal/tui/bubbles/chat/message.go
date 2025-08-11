@@ -220,8 +220,18 @@ func findToolResponse(toolCallID string, futureMessages []message.Message) *mess
 	return nil
 }
 
-func toolName(name string) string {
-	return strings.ToTitle(name)
+// REPLACED: toolName(name string) now accepts the full toolCall to access input args.
+func toolName(toolCall message.ToolCall) string {
+	if toolCall.Name == agent.AgentToolName {
+		var params agent.AgentToolArgs
+		if err := json.Unmarshal([]byte(toolCall.Input), &params); err == nil {
+			if params.AgentName != "" {
+				return fmt.Sprintf("SUBAGENT(%s)", params.AgentName)
+			}
+		}
+		return "SUBAGENT"
+	}
+	return strings.ToTitle(toolCall.Name)
 }
 
 func getToolAction(name string) string {
@@ -382,7 +392,18 @@ func renderToolMessage(
 
 	response := findToolResponse(toolCall.ID, allMessages)
 	toolNameText := baseStyle.Foreground(t.TextMuted()).
-		Render(fmt.Sprintf("%s: ", toolName(toolCall.Name)))
+		Render(fmt.Sprintf("%s: ", toolName(toolCall)))
+
+	// Emphasize agent name inside SUBAGENT(...)
+	if toolCall.Name == agent.AgentToolName {
+		var params agent.AgentToolArgs
+		if err := json.Unmarshal([]byte(toolCall.Input), &params); err == nil && params.AgentName != "" {
+			prefix := baseStyle.Foreground(t.TextMuted()).Render("SUBAGENT(")
+			agentStyled := baseStyle.Foreground(t.TextMuted()).Bold(true).Render(string(params.AgentName))
+			suffix := baseStyle.Foreground(t.TextMuted()).Render("): ")
+			toolNameText = lipgloss.JoinHorizontal(lipgloss.Left, prefix, agentStyled, suffix)
+		}
+	}
 
 	if !toolCall.Finished {
 		// Get a brief description of what the tool is doing
