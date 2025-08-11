@@ -49,11 +49,12 @@ func NewActivityPage(app *app.App) tea.Model {
 	
 	columns := []table.Column{
 		{Title: "Agent", Width: 15},
-		{Title: "Task", Width: 30},
-		{Title: "Status", Width: 15},
-		{Title: "Progress", Width: 10},
-		{Title: "Started", Width: 10},
-		{Title: "Duration", Width: 10},
+		{Title: "Task", Width: 25},
+		{Title: "Status", Width: 20},
+		{Title: "Progress", Width: 8},
+		{Title: "ETA", Width: 8},
+		{Title: "Started", Width: 8},
+		{Title: "Duration", Width: 8},
 	}
 	
 	tbl := table.New(
@@ -102,11 +103,12 @@ func (m *activityPageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		totalWidth := msg.Width - 8 // Leave some margin
 		cols := []table.Column{
 			{Title: "Agent", Width: totalWidth * 15 / 100},
-			{Title: "Task", Width: totalWidth * 35 / 100},
-			{Title: "Status", Width: totalWidth * 15 / 100},
-			{Title: "Progress", Width: totalWidth * 10 / 100},
+			{Title: "Task", Width: totalWidth * 25 / 100},
+			{Title: "Status", Width: totalWidth * 20 / 100},
+			{Title: "Progress", Width: totalWidth * 8 / 100},
+			{Title: "ETA", Width: totalWidth * 8 / 100},
 			{Title: "Started", Width: totalWidth * 12 / 100},
-			{Title: "Duration", Width: totalWidth * 13 / 100},
+			{Title: "Duration", Width: totalWidth * 12 / 100},
 		}
 		m.table.SetColumns(cols)
 		
@@ -201,23 +203,39 @@ func (m *activityPageModel) refreshActivities() tea.Cmd {
 			
 			// Truncate task description if too long
 			task := activity.Task
-			if len(task) > 25 {
-				task = task[:22] + "..."
+			if len(task) > 20 {
+				task = task[:17] + "..."
+			}
+			
+			// Use the enhanced status text
+			statusText := activity.StatusText
+			if len(statusText) > 18 {
+				statusText = statusText[:15] + "..."
 			}
 			
 			// Format status with color indicators
-			status := string(activity.Status)
+			status := statusText
 			switch activity.Status {
 			case subagent.StatusStarting:
-				status = "🔄 " + status
+				status = "🔄 " + statusText
 			case subagent.StatusRunning:
-				status = "⚡ " + status
+				status = "⚡ " + statusText
 			case subagent.StatusCompleted:
-				status = "✅ " + status
+				status = "✅ " + statusText
 			case subagent.StatusError:
-				status = "❌ " + status
+				status = "❌ " + statusText
 			case subagent.StatusAborted:
-				status = "🛑 " + status
+				status = "🛑 " + statusText
+			}
+			
+			// Truncate status if too long
+			if len(status) > 18 {
+				status = status[:15] + "..."
+			}
+			
+			estimatedTime := activity.EstimatedTime
+			if estimatedTime == "" {
+				estimatedTime = "-"
 			}
 			
 			rows[i] = table.Row{
@@ -225,6 +243,7 @@ func (m *activityPageModel) refreshActivities() tea.Cmd {
 				task,
 				status,
 				activity.Progress,
+				estimatedTime,
 				activity.StartedAt.Format("15:04:05"),
 				duration.String(),
 			}

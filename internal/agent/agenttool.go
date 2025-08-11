@@ -104,7 +104,7 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 
 	// Update activity status to running
 	if activity != nil {
-		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "Executing task...", "25%")
+		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "", "10%")
 	}
 
 	done, err := agent.Run(taskCtx, session.ID, args.Prompt)
@@ -119,7 +119,7 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 	
 	// Update progress
 	if activity != nil {
-		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "Processing response...", "75%")
+		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "", "80%")
 	}
 	
 	result := <-done

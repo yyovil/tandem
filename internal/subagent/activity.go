@@ -2,6 +2,7 @@ package subagent
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -22,19 +23,21 @@ const (
 
 // Activity represents a single subagent task
 type Activity struct {
-	ID          string            `json:"id"`
-	SessionID   string            `json:"session_id"`
-	ParentID    string            `json:"parent_id"`
-	AgentName   config.AgentName  `json:"agent_name"`
-	Task        string            `json:"task"`
-	Status      ActivityStatus    `json:"status"`
-	StatusText  string            `json:"status_text"`
-	Progress    string            `json:"progress"`
-	StartedAt   time.Time         `json:"started_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
-	CompletedAt *time.Time        `json:"completed_at,omitempty"`
-	Error       string            `json:"error,omitempty"`
-	CanAbort    bool              `json:"can_abort"`
+	ID              string            `json:"id"`
+	SessionID       string            `json:"session_id"`
+	ParentID        string            `json:"parent_id"`
+	AgentName       config.AgentName  `json:"agent_name"`
+	Task            string            `json:"task"`
+	Status          ActivityStatus    `json:"status"`
+	StatusText      string            `json:"status_text"`
+	Progress        string            `json:"progress"`
+	ProgressPercent int               `json:"progress_percent"`
+	StartedAt       time.Time         `json:"started_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
+	CompletedAt     *time.Time        `json:"completed_at,omitempty"`
+	Error           string            `json:"error,omitempty"`
+	CanAbort        bool              `json:"can_abort"`
+	EstimatedTime   string            `json:"estimated_time,omitempty"`
 }
 
 // ActivityEvent represents events published by the activity service
@@ -74,9 +77,10 @@ type Service interface {
 
 type service struct {
 	*pubsub.Broker[ActivityEvent]
-	activities  map[string]*Activity
-	cancelFuncs map[string]context.CancelFunc
-	mu          sync.RWMutex
+	activities      map[string]*Activity
+	cancelFuncs     map[string]context.CancelFunc
+	statusGenerator *StatusGenerator
+	mu              sync.RWMutex
 }
 
 func (s *service) StartActivity(ctx context.Context, sessionID, parentID string, agentName config.AgentName, task string) (*Activity, error) {
@@ -84,17 +88,19 @@ func (s *service) StartActivity(ctx context.Context, sessionID, parentID string,
 	defer s.mu.Unlock()
 	
 	activity := &Activity{
-		ID:         sessionID, // Use session ID as activity ID for simplicity
-		SessionID:  sessionID,
-		ParentID:   parentID,
-		AgentName:  agentName,
-		Task:       task,
-		Status:     StatusStarting,
-		StatusText: "Initializing subagent...",
-		Progress:   "0%",
-		StartedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
-		CanAbort:   true,
+		ID:              sessionID, // Use session ID as activity ID for simplicity
+		SessionID:       sessionID,
+		ParentID:        parentID,
+		AgentName:       agentName,
+		Task:            task,
+		Status:          StatusStarting,
+		StatusText:      s.statusGenerator.GenerateStatusText(agentName, task, 0),
+		Progress:        "0%",
+		ProgressPercent: 0,
+		StartedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		CanAbort:        true,
+		EstimatedTime:   "Calculating...",
 	}
 	
 	s.activities[activity.ID] = activity
@@ -116,10 +122,27 @@ func (s *service) UpdateActivity(ctx context.Context, activityID string, status 
 		return nil // Activity not found, silently ignore
 	}
 	
+	// Parse progress percentage
+	progressPercent := activity.ProgressPercent
+	if progress != "" {
+		// Try to extract percentage from progress string
+		var parsed int
+		if n, err := fmt.Sscanf(progress, "%d%%", &parsed); n == 1 && err == nil {
+			progressPercent = parsed
+		}
+	}
+	
+	// Generate smart status text if not provided
+	if statusText == "" {
+		statusText = s.statusGenerator.GenerateStatusText(activity.AgentName, activity.Task, progressPercent)
+	}
+	
 	activity.Status = status
 	activity.StatusText = statusText
 	activity.Progress = progress
+	activity.ProgressPercent = progressPercent
 	activity.UpdatedAt = time.Now()
+	activity.EstimatedTime = s.statusGenerator.GetEstimatedTimeRemaining(progressPercent, activity.StartedAt)
 	
 	s.Publish(pubsub.UpdatedEvent, ActivityEvent{
 		Type:     "activity_updated",
@@ -247,8 +270,9 @@ func (s *service) IsActivityActive(ctx context.Context, activityID string) bool 
 
 func NewService() Service {
 	return &service{
-		Broker:      pubsub.NewBroker[ActivityEvent](),
-		activities:  make(map[string]*Activity),
-		cancelFuncs: make(map[string]context.CancelFunc),
+		Broker:          pubsub.NewBroker[ActivityEvent](),
+		activities:      make(map[string]*Activity),
+		cancelFuncs:     make(map[string]context.CancelFunc),
+		statusGenerator: &StatusGenerator{},
 	}
 }
