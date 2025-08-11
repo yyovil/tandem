@@ -28,6 +28,7 @@ const (
 
 type keyMap struct {
 	Logs          key.Binding
+	Activity      key.Binding
 	Quit          key.Binding
 	Help          key.Binding
 	SwitchSession key.Binding
@@ -39,6 +40,11 @@ var keys = keyMap{
 	Logs: key.NewBinding(
 		key.WithKeys("ctrl+l"),
 		key.WithHelp("ctrl+l", "logs"),
+	),
+
+	Activity: key.NewBinding(
+		key.WithKeys("ctrl+t"),
+		key.WithHelp("ctrl+t", "subagent activity"),
 	),
 
 	Quit: key.NewBinding(
@@ -116,8 +122,9 @@ func New(app *app.App) tea.Model {
 		modelDialog:   dialog.NewModelDialogCmp(),
 		app:           app,
 		pages: map[page.PageID]tea.Model{
-			page.ChatPage: page.NewChatPage(app),
-			page.LogsPage: page.NewLogsPage(),
+			page.ChatPage:     page.NewChatPage(app),
+			page.LogsPage:     page.NewLogsPage(),
+			page.ActivityPage: page.NewActivityPage(app),
 		},
 		filepicker: dialog.NewFilepickerCmp(app),
 	}
@@ -353,7 +360,7 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, returnKey) || key.Matches(msg):
 			if msg.String() == quitKey {
-				if a.currentPage == page.LogsPage {
+				if a.currentPage == page.LogsPage || a.currentPage == page.ActivityPage {
 					return a, a.moveToPage(page.ChatPage)
 				}
 			} else if !a.filepicker.IsCWDFocused() {
@@ -370,12 +377,14 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a.filepicker.ToggleFilepicker(a.showFilepicker)
 					return a, nil
 				}
-				if a.currentPage == page.LogsPage {
+				if a.currentPage == page.LogsPage || a.currentPage == page.ActivityPage {
 					return a, a.moveToPage(page.ChatPage)
 				}
 			}
 		case key.Matches(msg, keys.Logs):
 			return a, a.moveToPage(page.LogsPage)
+		case key.Matches(msg, keys.Activity):
+			return a, a.moveToPage(page.ActivityPage)
 		case key.Matches(msg, keys.Help):
 
 			if a.showQuit {

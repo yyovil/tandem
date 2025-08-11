@@ -13,6 +13,7 @@ import (
 	"github.com/yaydraco/tandem/internal/logging"
 	"github.com/yaydraco/tandem/internal/message"
 	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/subagent"
 	"github.com/yaydraco/tandem/internal/tools"
 )
 
@@ -20,6 +21,7 @@ type App struct {
 	Sessions     session.Service
 	Messages     message.Service
 	Orchestrator agent.Service
+	SubAgents    subagent.Service
 	// ADHD: why we shouldn't initialise all the agents at once right in here? here's another thought. we don't want to have multiple agents of the same time, say couple of reconnoiters, doing some scanning because of the nature of the task in hand.
 }
 
@@ -27,10 +29,12 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 	q := db.New(conn)
 	sessions := session.NewService(q)
 	messages := message.NewService(q)
+	subagents := subagent.NewService()
 
 	app := &App{
-		Sessions: sessions,
-		Messages: messages,
+		Sessions:  sessions,
+		Messages:  messages,
+		SubAgents: subagents,
 	}
 
 	var err error
@@ -38,7 +42,7 @@ func New(ctx context.Context, conn *sql.DB) (*App, error) {
 		config.Orchestrator,
 		app.Sessions,
 		app.Messages,
-		[]tools.BaseTool{agent.NewAgentTool(app.Sessions, app.Messages)},
+		[]tools.BaseTool{agent.NewAgentTool(app.Sessions, app.Messages, app.SubAgents)},
 		nil,
 	)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/yaydraco/tandem/internal/logging"
 	"github.com/yaydraco/tandem/internal/message"
 	"github.com/yaydraco/tandem/internal/session"
+	"github.com/yaydraco/tandem/internal/subagent"
 	"github.com/yaydraco/tandem/internal/tools"
 )
 
@@ -29,8 +30,9 @@ type AgentToolArgs struct {
 }
 
 type AgentTool struct {
-	messages message.Service
-	sessions session.Service
+	messages  message.Service
+	sessions  session.Service
+	subagents subagent.Service
 }
 
 func (a *AgentTool) Info() tools.ToolInfo {
@@ -84,29 +86,76 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 		return tools.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
 	}
 
-	done, err := agent.Run(ctx, session.ID, args.Prompt)
+	// Start tracking the activity
+	activity, err := a.subagents.StartActivity(ctx, session.ID, sessionID, args.AgentName, args.Prompt)
 	if err != nil {
+		logging.Error("Failed to start activity tracking", err)
+		// Continue without activity tracking if it fails
+	}
+
+	// Create a cancellable context for this specific task
+	taskCtx, taskCancel := context.WithCancel(ctx)
+	defer taskCancel()
+
+	// Store the cancel function in the activity service
+	if activity != nil {
+		a.subagents.SetCancelFunc(activity.ID, taskCancel)
+	}
+
+	// Update activity status to running
+	if activity != nil {
+		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "", "10%")
+	}
+
+	done, err := agent.Run(taskCtx, session.ID, args.Prompt)
+	if err != nil {
+		if activity != nil {
+			a.subagents.CompleteActivity(ctx, activity.ID, false, fmt.Sprintf("error generating agent: %s", err))
+		}
 		return tools.ToolResponse{}, fmt.Errorf("error generating agent: %s", err)
 	}
 
 	logging.Debug("using agent", "name", args.AgentName, "busy", agent.IsBusy())
+	
+	// Update progress
+	if activity != nil {
+		a.subagents.UpdateActivity(ctx, activity.ID, subagent.StatusRunning, "", "80%")
+	}
+	
 	result := <-done
 	logging.Debug("task done by agent", "name", args.AgentName, "busy", agent.IsBusy())
+	
 	if result.Error != nil {
+		if activity != nil {
+			if result.Error.Error() == "request cancelled by user" || result.Error.Error() == "context canceled" {
+				// Activity was already marked as aborted by the cancel function
+				return tools.ToolResponse{}, fmt.Errorf("task was aborted by user")
+			}
+			a.subagents.CompleteActivity(ctx, activity.ID, false, fmt.Sprintf("error generating agent: %s", result.Error))
+		}
 		return tools.ToolResponse{}, fmt.Errorf("error generating agent: %s", result.Error)
 	}
 
 	response := result.Message
 	if response.Role != message.Assistant {
+		if activity != nil {
+			a.subagents.CompleteActivity(ctx, activity.ID, false, "no response")
+		}
 		return tools.NewTextErrorResponse("no response"), nil
 	}
 
 	updatedSession, err := a.sessions.Get(ctx, session.ID)
 	if err != nil {
+		if activity != nil {
+			a.subagents.CompleteActivity(ctx, activity.ID, false, fmt.Sprintf("error getting session: %s", err))
+		}
 		return tools.ToolResponse{}, fmt.Errorf("error getting session: %s", err)
 	}
 	parentSession, err := a.sessions.Get(ctx, sessionID)
 	if err != nil {
+		if activity != nil {
+			a.subagents.CompleteActivity(ctx, activity.ID, false, fmt.Sprintf("error getting parent session: %s", err))
+		}
 		return tools.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
 	}
 
@@ -114,17 +163,28 @@ func (a *AgentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 
 	_, err = a.sessions.Save(ctx, parentSession)
 	if err != nil {
+		if activity != nil {
+			a.subagents.CompleteActivity(ctx, activity.ID, false, fmt.Sprintf("error saving parent session: %s", err))
+		}
 		return tools.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
 	}
+	
+	// Mark activity as completed successfully
+	if activity != nil {
+		a.subagents.CompleteActivity(ctx, activity.ID, true, "Task completed successfully")
+	}
+	
 	return tools.NewTextResponse(response.Content().String()), nil
 }
 
 func NewAgentTool(
 	Sessions session.Service,
 	Messages message.Service,
+	SubAgents subagent.Service,
 ) tools.BaseTool {
 	return &AgentTool{
-		sessions: Sessions,
-		messages: Messages,
+		sessions:  Sessions,
+		messages:  Messages,
+		subagents: SubAgents,
 	}
 }
