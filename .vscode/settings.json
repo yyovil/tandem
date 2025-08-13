@@ -25,7 +25,31 @@
         "--quiet",
       ],
       "icon": "terminal-bash",
-      "color": "terminal.ansiGreen",
+      "color": "terminal.ansiWhite",
+    },
+    "qwen-code": {
+      "overrideName": true,
+      "path": "nix",
+      "args": [
+        "develop",
+        "--quiet",
+        "--command",
+        "qwen"
+      ],
+      "icon": "terminal-bash",
+      "color": "terminal.ansiGreen"
+    },
+    "gemini-cli": {
+      "overrideName": true,
+      "path": "nix",
+      "args": [
+        "develop",
+        "--quiet",
+        "--command",
+        "gemini"
+      ],
+      "icon": "terminal-bash",
+      "color": "terminal.ansiMagenta"
     },
   },
   "terminal.integrated.defaultProfile.linux": "nix devShell",

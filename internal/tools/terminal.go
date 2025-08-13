@@ -70,7 +70,7 @@ func NewDockerCli() BaseTool {
 func (term *Terminal) Info() ToolInfo {
 	return ToolInfo{
 		Name:        TerminalToolName,
-		Description: "A tool to execute arbitary shell commands in a kali linux container.",
+		Description: "A tool to execute arbitary shell commands in a kali linux container. leave args empty for no arguments.",
 		Parameters: map[string]any{
 			"command": map[string]any{
 				"type":        "string",
@@ -85,7 +85,7 @@ func (term *Terminal) Info() ToolInfo {
 				},
 			},
 		},
-		Required: []string{"command"},
+		Required: []string{"command", "args"},
 	}
 }
 

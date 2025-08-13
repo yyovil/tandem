@@ -216,25 +216,23 @@ func (t *BaseTheme) DiffRemovedLineNumberBg() lipgloss.AdaptiveColor {
 	return t.DiffRemovedLineNumberBgColor
 }
 
-// TODO: Customise the Theme for tandem later.
 // CurrentTheme creates a new instance of the Tandem theme.
 func CurrentTheme() Theme {
-	// Tandem color palette
 	// Dark mode colors
 	darkBackground := "#000000"
 	darkCurrentLine := "#252525"
 	darkSelection := "#303030"
 	darkForeground := "#d9d9d9ff"
-	darkComment := "#6a6a6a"
-	darkPrimary := "#ff26b3"   // Primary orange/gold
-	darkSecondary := "#1e7cff" // Secondary blue
-	darkAccent := "#9d7cd8"    // Accent purple
-	darkRed := "#ec1532"       // Error red
-	darkOrange := "#f5a742"    // Warning orange
-	darkGreen := "#59dc38"     // Success green
-	darkCyan := "#56b6c2"      // Info cyan
-	darkYellow := "#e5c07b"    // Emphasized text
-	darkBorder := "#4b4c5c"    // Border color
+	darkComment := "#343a40"
+	darkPrimary := "#ff26b3"   // Primary
+	darkSecondary := "#1e7cff" // Secondary
+	darkAccent := "#1e7cff"    // Accent
+	darkRed := "#ef233c"       // Error
+	darkOrange := "#eb5e28"    // Warning
+	darkGreen := "#59dc38"     // Success
+	darkCyan := "#56b6c2"      // Info
+	darkYellow := "#fbff12"    // Emphasized text
+	darkBorder := "#353535"    // Border color
 
 	// Light mode colors
 	lightBackground := "#f8f8f8"
@@ -242,14 +240,14 @@ func CurrentTheme() Theme {
 	lightSelection := "#e5e5e6"
 	lightForeground := "#000000"
 	lightComment := "#8a8a8a"
-	lightPrimary := "#ff26b3"   // Primary orange/gold
-	lightSecondary := "#1e7cff" // Secondary blue
-	lightAccent := "#9d7cd8"    // Accent purple
-	lightRed := "#ec1532"       // Error red
-	lightOrange := "#f5a742"    // Warning orange
-	lightGreen := "#59dc38"     // Success green
-	lightCyan := "#56b6c2"      // Info cyan
-	lightYellow := "#e5c07b"    // Emphasized text
+	lightPrimary := "#ff26b3"   // Primary
+	lightSecondary := "#1e7cff" // Secondary
+	lightAccent := "#1e7cff"    // Accent
+	lightRed := "#ec1532"       // Error
+	lightOrange := "#eb5e28"    // Warning
+	lightGreen := "#59dc38"     // Success
+	lightCyan := "#56b6c2"      // Info
+	lightYellow := "#fbff12"    // Emphasized text
 	lightBorder := "#d3d3d3"    // Border color
 
 	theme := &BaseTheme{}

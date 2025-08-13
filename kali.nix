@@ -25,5 +25,11 @@ pkgs.dockerTools.buildLayeredImage {
     nikto
     exploitdb
     enum4linux
+    python3
+    sqlmap
   ];
+  config = {
+    Cmd = [ "bash" ];
+    WorkingDir = "/home/tandem";
+  };
 }

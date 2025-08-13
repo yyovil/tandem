@@ -1,5 +1,4 @@
-.env*
-!.env.example
+tandem.env
 .go
 .vagrant
 .ruff_cache
@@ -12,3 +11,8 @@ tandem
 OpenCode.md
 .predicted_expected_output.json
 kali
+.github/GEMINI.md
+.github/QWEN.md
+
+# Added by goreleaser init:
+dist/

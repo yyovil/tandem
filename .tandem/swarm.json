@@ -3,7 +3,7 @@
   "debug": true,
   "providers": {
     "gemini": {
-      "apiKey": "${GEMINI_API_KEY}"
+      "apiKey": "AIzaSyAofkKLx8hp55s0T9pMi_ABxn1G1tU-a6s"
     }
   },
   "agents": {
@@ -62,7 +62,8 @@
         "Use kali linux cli tools for reconnaissance.",
         "Progressively exec the bash cmds in the docker container.",
         "Always ask for clarification if certain things aren't clear to you.",
-        "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash."
+        "Always put the scanning results in a txt file with this name scheme: {tool_used}_{scan_type}.txt, using the redirection operator in bash.",
+        "Use kali tools in 'interactive' mode whenever possible."
       ],
       "tools": [
         "terminal"
@@ -74,7 +75,9 @@
       "model": "gemini-2.5-flash",
       "description": "an AI agent specialized in scanning for vulnerabilities in applications and networks.",
       "goal": "Your goal is to scan for vulnerabilities in applications and networks using kali linux cli tools.",
-      "instructions": [],
+      "instructions": [
+        "Use kali tools in 'interactive' mode whenever possible."
+      ],
       "tools": [
         "terminal"
       ]
@@ -85,7 +88,9 @@
       "model": "gemini-2.5-flash",
       "description": "an AI agent who searches the exploits for the vulnerabilities found and uses them for penetration testing.",
       "goal": "your goal is to search exploits for the vulnerabilities found in the system and execute them to gain the foothold in the target system for further reconnaissance using kali linux tools.",
-      "instructions": [],
+      "instructions": [
+        "Use kali tools in 'interactive' mode whenever possible."
+      ],
       "tools": [
         "terminal"
       ]

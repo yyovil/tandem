@@ -20,17 +20,16 @@
             gopls
             gotools
             vagrant
-            starship
             sqlc
+            goreleaser
+            gum
           ];
 
           shellHook = ''
-            export STARSHIP_CONFIG=$PWD/.config/starship.toml
             export GOROOT="${pkgs.go}/share/go"
             export GOPATH="$PWD/.go"
             export PATH="$GOPATH/bin:$PATH"
             export GOBIN="$GOPATH/bin"
-            eval "$(starship init bash)"
           '';
         };
     };

@@ -28,6 +28,9 @@ const (
 	maxResultHeight = 10
 )
 
+// Use a rune with a Unicode code point instead of embedding the character directly.
+const rightDownwardsArrowWithHook rune = '\u21B3'
+
 type uiMessage struct {
 	ID          string
 	messageType uiMessageType
@@ -384,10 +387,12 @@ func renderToolMessage(
 	baseStyle := styles.BaseStyle()
 
 	style := baseStyle.
-		Width(width - 1).
+		Width(width-1).
 		BorderLeft(true).
 		BorderStyle(lipgloss.ThickBorder()).
+		Padding(1, 0).
 		PaddingLeft(1).
+		MarginBottom(1).
 		BorderForeground(t.TextMuted())
 
 	response := findToolResponse(toolCall.ID, allMessages)
@@ -448,7 +453,7 @@ func renderToolMessage(
 	} else {
 		prefix := baseStyle.
 			Foreground(t.TextMuted()).
-			Render(" └ ")
+			Render(" " + string(rightDownwardsArrowWithHook) + " ")
 		formattedParams := baseStyle.
 			Width(width - 2 - lipgloss.Width(toolNameText)).
 			Foreground(t.TextMuted()).
