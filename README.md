@@ -4,6 +4,37 @@
 Swarm of AI Agents to assist in a penetration testing engagement given a RoE.md stating Rules of Engagement.
 </p>
 
+## Installation
+
+### Quick Install
+
+Run the installation script to automatically install tandem and set up the required Docker environment:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yyovil/tandem/main/install.sh | bash
+```
+
+Or download and run the script manually:
+
+```bash
+wget https://raw.githubusercontent.com/yyovil/tandem/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+
+The install script will:
+- Detect your OS and architecture
+- Download the appropriate tandem binary from releases (or build from source if needed)
+- Install the binary to `/usr/local/bin`
+- Set up the required Docker environment with Kali Linux tools
+- Create a Docker container ready for penetration testing operations
+
+### Prerequisites
+
+- **Docker**: The script requires Docker to be installed and running
+- **curl** or **wget**: For downloading the binary
+- **Go** (optional): For building from source if releases are not available
+
 ## Configuration
 
 ### Setting up API Keys
