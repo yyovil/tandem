@@ -1,4 +1,4 @@
-module github.com/yaydraco/tandem
+module github.com/yyovil/tandem
 
 go 1.24.2
 

@@ -7,14 +7,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yaydraco/tandem/internal/config"
-	"github.com/yaydraco/tandem/internal/models"
-	"github.com/yaydraco/tandem/internal/pubsub"
-	"github.com/yaydraco/tandem/internal/session"
-	"github.com/yaydraco/tandem/internal/tui/bubbles/chat"
-	"github.com/yaydraco/tandem/internal/tui/styles"
-	"github.com/yaydraco/tandem/internal/tui/theme"
-	"github.com/yaydraco/tandem/internal/utils"
+	"github.com/yyovil/tandem/internal/config"
+	"github.com/yyovil/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/pubsub"
+	"github.com/yyovil/tandem/internal/session"
+	"github.com/yyovil/tandem/internal/tui/bubbles/chat"
+	"github.com/yyovil/tandem/internal/tui/styles"
+	"github.com/yyovil/tandem/internal/tui/theme"
+	"github.com/yyovil/tandem/internal/utils"
 )
 
 type StatusCmp interface {

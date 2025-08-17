@@ -55,4 +55,5 @@
   "terminal.integrated.defaultProfile.linux": "nix devShell",
   "terminal.integrated.cwd": "${workspaceFolder}",
   "go.formatTool": "gofmt",
+  "files.saveConflictResolution": "overwriteFileOnDisk",
 }

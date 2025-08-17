@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/yaydraco/tandem/internal/cmd"
-	"github.com/yaydraco/tandem/internal/logging"
+	"github.com/yyovil/tandem/internal/cmd"
+	"github.com/yyovil/tandem/internal/logging"
 )
 
 func main() {
@@ -11,5 +11,5 @@ func main() {
 	})
 
 	cmd.Execute()
-	
+
 }

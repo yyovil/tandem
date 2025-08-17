@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yaydraco/tandem/internal/db"
-	"github.com/yaydraco/tandem/internal/models"
-	"github.com/yaydraco/tandem/internal/pubsub"
+	"github.com/yyovil/tandem/internal/db"
+	"github.com/yyovil/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/pubsub"
 )
 
 type Message struct {

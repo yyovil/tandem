@@ -1,11 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/yyovil/tandem/refs/heads/main/swarm.schema.json",
   "debug": true,
-  "providers": {
-    "gemini": {
-      "apiKey": "AIzaSyAofkKLx8hp55s0T9pMi_ABxn1G1tU-a6s"
-    }
-  },
+  
   "agents": {
     "orchestrator": {
       "name": "orchestrator",

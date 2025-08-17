@@ -22,7 +22,6 @@
             vagrant
             sqlc
             goreleaser
-            gum
           ];
 
           shellHook = ''

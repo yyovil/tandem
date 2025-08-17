@@ -5,12 +5,12 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yaydraco/tandem/internal/app"
-	"github.com/yaydraco/tandem/internal/message"
-	"github.com/yaydraco/tandem/internal/session"
-	"github.com/yaydraco/tandem/internal/tui/bubbles/chat"
-	"github.com/yaydraco/tandem/internal/tui/layout"
-	"github.com/yaydraco/tandem/internal/utils"
+	"github.com/yyovil/tandem/internal/app"
+	"github.com/yyovil/tandem/internal/message"
+	"github.com/yyovil/tandem/internal/session"
+	"github.com/yyovil/tandem/internal/tui/bubbles/chat"
+	"github.com/yyovil/tandem/internal/tui/layout"
+	"github.com/yyovil/tandem/internal/utils"
 )
 
 var ChatPage PageID = "chat"

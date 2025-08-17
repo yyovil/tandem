@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yaydraco/tandem/internal/config"
-	"github.com/yaydraco/tandem/internal/logging"
-	"github.com/yaydraco/tandem/internal/message"
-	"github.com/yaydraco/tandem/internal/models"
-	"github.com/yaydraco/tandem/internal/provider"
-	"github.com/yaydraco/tandem/internal/pubsub"
-	"github.com/yaydraco/tandem/internal/session"
-	"github.com/yaydraco/tandem/internal/tools"
+	"github.com/yyovil/tandem/internal/config"
+	"github.com/yyovil/tandem/internal/logging"
+	"github.com/yyovil/tandem/internal/message"
+	"github.com/yyovil/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/provider"
+	"github.com/yyovil/tandem/internal/pubsub"
+	"github.com/yyovil/tandem/internal/session"
+	"github.com/yyovil/tandem/internal/tools"
 )
 
 // Common errors

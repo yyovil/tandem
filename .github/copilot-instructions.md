@@ -22,7 +22,7 @@ Follow these personal preferences while writing code when asked:
 
 # Project description
 
-[Tandem](https://github.com/yaydraco/tandem) is a terminal app for interfacing with a 
+[Tandem](https://github.com/yyovil/tandem) is a terminal app for interfacing with a 
 Swarm of AI Agents that work in tandem to assist during a Penetration Testing engagement. It should be given a Rules of Engagement(RoE) file to build the context boundary and then upon given the tasks it will execute them and accomplish the intended end goal as mentioned in the RoE by using the help of its Agents.
 List of Penetration testing related AI Agents at disposal:
 - **Orchestrator**: Point of Contact for the users to interact with the Swarm of AI Agents. user will have to explain the task to the orchestrator to complete. 

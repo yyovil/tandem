@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
-	"github.com/yaydraco/tandem/internal/logging"
-	"github.com/yaydraco/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/logging"
+	"github.com/yyovil/tandem/internal/models"
 )
 
 // Application constants
@@ -509,7 +509,10 @@ func validateAgent(cfg *Config, name AgentName, agent Agent) error {
 	provider := model.Provider
 	providerCfg, providerExists := cfg.Providers[provider]
 
+	logging.Debug("providerExists", "exists", providerExists)
+
 	if !providerExists {
+		logging.Debug("provider isn't configured in swarm.json", "providerCfg", providerCfg)
 		// Provider not configured, check if we have environment variables
 		apiKey := getProviderAPIKey(provider)
 		if apiKey == "" {

@@ -11,11 +11,11 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/shared"
-	"github.com/yaydraco/tandem/internal/config"
-	"github.com/yaydraco/tandem/internal/logging"
-	"github.com/yaydraco/tandem/internal/message"
-	"github.com/yaydraco/tandem/internal/models"
-	"github.com/yaydraco/tandem/internal/tools"
+	"github.com/yyovil/tandem/internal/config"
+	"github.com/yyovil/tandem/internal/logging"
+	"github.com/yyovil/tandem/internal/message"
+	"github.com/yyovil/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/tools"
 )
 
 type openaiOptions struct {

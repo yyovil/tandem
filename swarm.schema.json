@@ -135,8 +135,7 @@
     }
   },
   "required": [
-    "providers",
-    "agents"
+  "agents"
   ],
   "additionalProperties": false,
   "definitions": {

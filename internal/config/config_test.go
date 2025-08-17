@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/yaydraco/tandem/internal/models"
+	"github.com/yyovil/tandem/internal/models"
 )
 
 func TestGetAgentPrompt_Orchestrator(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/yaydraco/tandem/internal/config"
-	"github.com/yaydraco/tandem/internal/logging"
-	"github.com/yaydraco/tandem/internal/message"
-	"github.com/yaydraco/tandem/internal/session"
-	"github.com/yaydraco/tandem/internal/tools"
+	"github.com/yyovil/tandem/internal/config"
+	"github.com/yyovil/tandem/internal/logging"
+	"github.com/yyovil/tandem/internal/message"
+	"github.com/yyovil/tandem/internal/session"
+	"github.com/yyovil/tandem/internal/tools"
 )
 
 const AgentToolName = "subagent"

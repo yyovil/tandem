@@ -2,7 +2,7 @@ package styles
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yyovil/tandem/internal/tui/theme"
 )
 
 var (

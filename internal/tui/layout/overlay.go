@@ -7,7 +7,7 @@ import (
 	cbAnsi "github.com/charmbracelet/x/ansi"
 	"github.com/muesli/ansi"
 	"github.com/muesli/reflow/truncate"
-	"github.com/yaydraco/tandem/internal/utils"
+	"github.com/yyovil/tandem/internal/utils"
 )
 
 const whitespace = " "

@@ -11,11 +11,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/yaydraco/tandem/internal/agent"
-	"github.com/yaydraco/tandem/internal/message"
-	"github.com/yaydraco/tandem/internal/tools"
-	"github.com/yaydraco/tandem/internal/tui/styles"
-	"github.com/yaydraco/tandem/internal/tui/theme"
+	"github.com/yyovil/tandem/internal/agent"
+	"github.com/yyovil/tandem/internal/message"
+	"github.com/yyovil/tandem/internal/tools"
+	"github.com/yyovil/tandem/internal/tui/styles"
+	"github.com/yyovil/tandem/internal/tui/theme"
 )
 
 type uiMessageType int
