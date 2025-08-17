@@ -179,7 +179,10 @@ func generateMarkdownStyleConfig() ansi.StyleConfig {
 				StylePrimitive: ansi.StylePrimitive{
 					BlockPrefix: "\n",
 					BlockSuffix: "\n",
+					Color:       stringPtr(adaptiveColorToString(t.MarkdownText())),
 				},
+				Margin: uintPtr(defaultMargin),
+				Indent: uintPtr(1), // Add some indentation for better readability
 			},
 			CenterSeparator: stringPtr("┼"),
 			ColumnSeparator: stringPtr("│"),
