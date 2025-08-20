@@ -17,7 +17,7 @@ import (
 
 const (
 	TerminalToolName = "terminal"
-	DockerImage      = "kali:withtools"
+	DockerImage      = "kali:headless"
 )
 
 type TerminalArgs struct {

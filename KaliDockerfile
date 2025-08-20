@@ -1,0 +1,10 @@
+FROM kalilinux/kali-last-release AS base
+
+# to say yes to all.
+ENV DEBIAN_FRONTEND=noninteractive
+
+# go get the headless metapackage.
+RUN apt-get update && apt-get install -y --no-install-recommends kali-linux-headless
+
+USER root
+WORKDIR /home/pentests
