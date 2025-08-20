@@ -13,6 +13,8 @@ OpenCode.md
 kali
 .github/GEMINI.md
 .github/QWEN.md
+.direnv
+.envrc
 
 # Added by goreleaser init:
 dist/

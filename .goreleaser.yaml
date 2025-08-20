@@ -30,7 +30,15 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-
+    files:
+      - src: KaliDockerfile
+        dst: KaliDockerfile
+      - src: tandem.example.env
+        dst: tandem.example.env
+      - src: .tandem/swarm.json
+        dst: .tandem/
+        
+    wrap_in_directory: true
 changelog:
   sort: asc
   filters:
