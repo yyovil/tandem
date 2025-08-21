@@ -82,3 +82,30 @@ After configuring your API keys and agent settings:
    ```
 
 3. **Interact with agents**: Use the interface to communicate with specialized agents for different phases of your penetration testing workflow.
+
+### Direct Command Execution
+
+In addition to interacting with AI agents, you can execute commands directly in the Kali Linux container using the **bang (!) prefix**:
+
+**Usage:**
+- Type `!` followed by any command to execute it directly
+- Results are displayed immediately without AI agent involvement
+- Both the command and results are saved in your chat history
+
+**Examples:**
+```
+!ls -la                    # List files with details
+!whoami                    # Show current user
+!nmap -p 80 127.0.0.1     # Network scan
+!ps aux                    # Show running processes
+!cat /etc/passwd           # Read system files
+```
+
+**Benefits:**
+- ✅ Immediate execution without waiting for AI processing
+- ✅ Access to all Kali Linux penetration testing tools
+- ✅ Results formatted in easy-to-read code blocks
+- ✅ Full command history preserved in chat
+- ✅ Error handling for invalid commands
+
+**Note**: Commands are executed in the same Kali Linux container that agents use, so you have access to all the same tools and environment.
