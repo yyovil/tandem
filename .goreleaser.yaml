@@ -2,11 +2,9 @@
 
 version: 2
 project_name: tandem
-  
 before:
   hooks:
     - go mod tidy
-
 builds:
   - env:
       - CGO_ENABLED=0
@@ -14,31 +12,29 @@ builds:
       - linux
       - windows
       - darwin
-
 archives:
   - formats: [tar.gz]
-    # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
-      {{ .ProjectName }}_
-      {{- .Os }}_
+      {{ tolower .ProjectName }}_
+      {{- tolower .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-      
-    # use zip for windows archives
     format_overrides:
       - goos: windows
         formats: [zip]
+    wrap_in_directory: "{{ tolower .ProjectName }}_tmp"
     files:
-      - src: KaliDockerfile
-        dst: KaliDockerfile
       - src: tandem.example.env
         dst: tandem.example.env
       - src: .tandem/swarm.json
-        dst: .tandem/
-        
-    wrap_in_directory: true
+        dst: swarm.json
+      - src: LICENSE
+        dst: LICENSE
+      - src: README.md
+        dst: README.md
+report_sizes: true
 changelog:
   sort: asc
   filters:
