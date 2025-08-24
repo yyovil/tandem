@@ -5,8 +5,52 @@ APP=tandem
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-ORANGE='\033[38;2;255;140;0m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# XDG config home for storing Tandem config; set a default if not provided
+XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+
+# Messaging helper used throughout the script
+print_message() {
+    local level=$1
+    local message=$2
+    local color=""
+
+    case $level in
+        info) color="${GREEN}" ;;
+        warning) color="${YELLOW}" ;;
+        error) color="${RED}" ;;
+    esac
+
+    echo -e "${color}${message}${NC}"
+}
+
+# Early Docker environment check: verify CLI presence and daemon availability
+check_docker_installation() {
+    # Exit codes:
+    #   0   -> Docker CLI present and daemon reachable
+    #   69  -> Service unavailable (daemon not running)
+    #   127 -> Command not found (docker CLI missing)
+
+    if ! command -v docker &>/dev/null; then
+        print_message error "Docker CLI not found on this system. Please install Docker for your OS."
+        # 127 is the conventional exit code for 'command not found'
+        return 127
+    fi
+
+    if ! docker info &>/dev/null; then
+        print_message warning "Docker daemon (dockerd) is not running or unreachable."
+        # 69 corresponds to EX_UNAVAILABLE (service unavailable)
+        return 69
+    fi
+
+    print_message info "Docker is installed and the daemon is running."
+    return 0
+}
+
+# Ensure Docker environment is ready before any further work
+check_docker_installation
 
 requested_version=${VERSION:-}
 
@@ -14,15 +58,13 @@ os=$(uname -s | tr '[:upper:]' '[:lower:]')
 if [[ "$os" == "darwin" ]]; then
     os="mac"
 fi
-arch=$(uname -m)
 
+arch=$(uname -m)
 if [[ "$arch" == "aarch64" ]]; then
   arch="arm64"
 fi
 
-filename="$APP-$os-$arch.tar.gz"
-
-
+filename="$APP_$os_$arch.tar.gz"
 case "$filename" in
     *"-linux-"*)
         [[ "$arch" == "x86_64" || "$arch" == "arm64" || "$arch" == "i386" ]] || exit 1
@@ -40,8 +82,8 @@ INSTALL_DIR=$HOME/.tandem/bin
 mkdir -p "$INSTALL_DIR"
 
 if [ -z "$requested_version" ]; then
-    url="https://github.com/yyovil/tandem/releases/pre-release/download/$filename"
-    specific_version=$(curl -s https://api.github.com/repos/yyovil/tandem/releases/pre-release | awk -F'"' '/"tag_name": "/ {gsub(/^v/, "", $4); print $4}')
+    url="https://github.com/yyovil/tandem/releases/latest/download/$filename"
+    specific_version=$(curl -s https://api.github.com/repos/yyovil/tandem/releases/latest | awk -F'"' '/"tag_name": "/ {gsub(/^v/, "", $4); print $4}')
 
     if [[ $? -ne 0 ]]; then
         echo "${RED}Failed to fetch version information${NC}"
@@ -52,30 +94,12 @@ else
     specific_version=$requested_version
 fi
 
-print_message() {
-    local level=$1
-    local message=$2
-    local color=""
-
-    case $level in
-        info) color="${GREEN}" ;;
-        warning) color="${YELLOW}" ;;
-        error) color="${RED}" ;;
-    esac
-
-    echo -e "${color}${message}${NC}"
-}
+ 
 
 check_version() {
-    if command -v tandem >/dev/null 2>&1; then
-        tandem_path=$(which tandem)
-
-
-        ## TODO: check if version is installed
-        # installed_version=$(tandem version)
-        installed_version="0.0.1"
-        installed_version=$(echo $installed_version | awk '{print $2}')
-
+    # NOTE: redirects both the stdout and stderr to /dev/null (nowhere). only concerned with the status code [0-255] here.
+    if command -v tandem &>/dev/null; then
+        installed_version=$(tandem --version | awk '{print $1}')
         if [[ "$installed_version" != "$specific_version" ]]; then
             print_message info "Installed version: ${YELLOW}$installed_version."
         else
@@ -86,16 +110,59 @@ check_version() {
 }
 
 download_and_install() {
-    print_message info "Downloading ${ORANGE}tandem ${GREEN}version: ${YELLOW}$specific_version ${GREEN}..."
-    mkdir -p tandemtmp && cd tandemtmp
+    print_message info "Downloading ${BLUE}tandem ${GREEN}version: ${YELLOW}$specific_version ${GREEN}..."
     curl -# -L $url | tar xz
+    cd tandem_tmp
     mv tandem $INSTALL_DIR
-    cd .. && rm -rf tandemtmp 
+    # Put default config/docs into the user's XDG config directory without overwriting existing files.
+    local app_cfg_dir="$XDG_CONFIG_HOME/$APP"
+    mkdir -p "$app_cfg_dir"
+
+    # Files expected in the archive root we want to place under config dir
+    local files=("swarm.json" "LICENSE" "README.md" "tandem.example.env")
+    for f in "${files[@]}"; do
+        if [[ -f "$f" ]]; then
+            local target="$app_cfg_dir/$f"
+            if [[ -e "$target" ]]; then
+                print_message warning "Skipping ${YELLOW}$f${NC}: already exists in $app_cfg_dir"
+            else
+                cp "$f" "$target"
+                print_message info "Placed default ${BLUE}$f${GREEN} into $app_cfg_dir"
+            fi
+        else
+            print_message warning "Expected ${YELLOW}$f${NC} not found in extracted archive"
+        fi
+    done
+    cd .. && rm -rf tandem_tmp
+
+    # Pull the Docker image and create/start a container (assumes Docker is available and running)
+    local IMAGE="ghcr.io/yyovil/kali:headless"
+    local CONTAINER_NAME="tandem"
+
+    print_message info "Ensuring Docker image ${BLUE}$IMAGE${GREEN} is available..."
+    if ! docker image inspect "$IMAGE" &>/dev/null; then
+        docker pull "$IMAGE"
+    fi
+
+    # Create the container if it doesn't already exist; do not start it here
+    if docker inspect -f '{{.State.Status}}' "$CONTAINER_NAME" &>/dev/null; then
+        local status
+        status=$(docker inspect -f '{{.State.Status}}' "$CONTAINER_NAME")
+        if [[ "$status" == "running" ]]; then
+            print_message info "Docker container ${BLUE}$CONTAINER_NAME${GREEN} already exists and is running."
+        else
+            print_message info "Docker container ${BLUE}$CONTAINER_NAME${GREEN} already exists (status: ${YELLOW}$status${GREEN})."
+            print_message info "Start it when ready: docker start -ai $CONTAINER_NAME"
+        fi
+    else
+        print_message info "Creating Docker container ${BLUE}$CONTAINER_NAME${GREEN} with hostname ${YELLOW}$CONTAINER_NAME${GREEN}..."
+        docker create --privileged --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" -it "$IMAGE" /bin/bash
+        print_message info "Created container ${BLUE}$CONTAINER_NAME${GREEN}. Start it with: docker start -ai $CONTAINER_NAME"
+    fi
 }
 
 check_version
 download_and_install
-
 
 add_to_path() {
     local config_file=$1
@@ -104,14 +171,12 @@ add_to_path() {
     if [[ -w $config_file ]]; then
         echo -e "\n# tandem" >> "$config_file"
         echo "$command" >> "$config_file"
-        print_message info "Successfully added ${ORANGE}tandem ${GREEN}to \$PATH in $config_file"
+        print_message info "Successfully added ${BLUE}tandem ${GREEN}to \$PATH in $config_file"
     else
         print_message warning "Manually add the directory to $config_file (or similar):"
         print_message info "  $command"
     fi
 }
-
-XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
 
 # figuring out what config file should we use to put our app specific config into.
 current_shell=$(basename "$SHELL")
@@ -172,10 +237,5 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
             print_message info "  export PATH=$INSTALL_DIR:\$PATH"
         ;;
     esac
-fi
-
-if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
-    echo "$INSTALL_DIR" >> $GITHUB_PATH
-    print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
 fi
 

@@ -1,3 +1,5 @@
+uninstall.sh
+tandem_tmp
 tandem.env
 .go
 .vagrant
