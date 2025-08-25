@@ -35,13 +35,11 @@ check_docker_installation() {
 
     if ! command -v docker &>/dev/null; then
         print_message error "Docker CLI not found on this system. Please install Docker for your OS."
-        # 127 is the conventional exit code for 'command not found'
         return 127
     fi
 
     if ! docker info &>/dev/null; then
         print_message warning "Docker daemon (dockerd) is not running or unreachable."
-        # 69 corresponds to EX_UNAVAILABLE (service unavailable)
         return 69
     fi
 
@@ -64,19 +62,22 @@ if [[ "$arch" == "aarch64" ]]; then
   arch="arm64"
 fi
 
-filename="$APP_$os_$arch.tar.gz"
+filename="${APP}_${os}_${arch}.tar.gz"
 case "$filename" in
-    *"-linux-"*)
+    *"_linux_"*)
         [[ "$arch" == "x86_64" || "$arch" == "arm64" || "$arch" == "i386" ]] || exit 1
     ;;
-    *"-mac-"*)
+    *"_mac_"*)
         [[ "$arch" == "x86_64" || "$arch" == "arm64" ]] || exit 1
     ;;
     *)
-        echo "${RED}Unsupported OS/Arch: $os/$arch${NC}"
+        echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
         exit 1
     ;;
 esac
+
+# Rest of your script continues unchanged...
+
 
 INSTALL_DIR=$HOME/.tandem/bin
 mkdir -p "$INSTALL_DIR"
