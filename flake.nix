@@ -29,6 +29,7 @@
             export GOPATH="$PWD/.go"
             export PATH="$GOPATH/bin:$PATH"
             export GOBIN="$GOPATH/bin"
+            source tandem.env
           '';
         };
     };
