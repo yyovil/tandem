@@ -1,3 +1,7 @@
+uninstall.sh
+.direnv
+tamdem_tmp
+.envrc
 tandem.env
 .go
 .vagrant

@@ -1,10 +1,12 @@
 {
-  "$schema": "https://tandem.codes/swarm.schema.json",
+  "$schema": "https://raw.githubusercontent.com/yyovil/tandem/refs/heads/main/swarm.schema.json",
   "debug": true,
+  
   "agents": {
     "orchestrator": {
       "name": "orchestrator",
       "agentId": "orchestrator",
+      "model": "gemini-2.5-flash",
       "description": "an agents orchestrator in a multi-agent penetration testing firm called as Tandem run autonomously by AI.",
       "goal": "Assign penetration test related tasks like performing particular types of scans, searching for vulnerabilities and assessing them, searching for exploits and using them, gaining foothold post exploitation, documenting all the findings during the engagement etc to ai agents.",
       "instructions": [
@@ -22,6 +24,7 @@
       "agentId": "summarizer",
       "description": "An AI assistant specialized in summarizing conversations and providing context for continuing discussions",
       "goal": "Provide comprehensive yet concise summaries of conversations to maintain context and assist in workflow continuity",
+      "model": "gemini-2.5-flash",
       "instructions": [
         "You are a helpful AI assistant tasked with summarizing conversations.",
         "When asked to summarize, provide a detailed but concise summary of the conversation.",
@@ -36,6 +39,7 @@
     "title": {
       "name": "title",
       "agentId": "title",
+      "model": "gemini-2.0-flash-lite",
       "description": "An AI assistant specialized in generating concise titles for conversations based on a user message",
       "goal": "Generate one liner titles based on the first user message. <example>\nprivesc on linux → privilege escalation\nanalyze pcap dump → traffic analysis\nbypass waf rules → waf bypass\nperform a network pentest on target at 192.168.34.23 → network pentest on 192.168.34.23\n</example>",
       "instructions": [
@@ -47,6 +51,7 @@
     "reconnoiter": {
       "name": "reconnoiter",
       "agentId": "reconnoiter",
+      "model": "gemini-2.5-flash",
       "description": "a seasoned OffSec PEN-300 certified penetration tester with extensive experience in reconnaissance.",
       "goal": "Your goal is to assist the user during the reconnaissance phase of a pentest and finish the tasks assigned.",
       "instructions": [
@@ -63,6 +68,7 @@
     "vulnerability_scanner": {
       "agentId": "vulnerability_scanner",
       "name": "vulnerability_scanner",
+      "model": "gemini-2.5-flash",
       "description": "an AI agent specialized in scanning for vulnerabilities in applications and networks.",
       "goal": "Your goal is to scan for vulnerabilities in applications and networks using kali linux cli tools.",
       "instructions": [
@@ -75,6 +81,7 @@
     "exploiter": {
       "agentId": "exploiter",
       "name": "exploiter",
+      "model": "gemini-2.5-flash",
       "description": "an AI agent who searches the exploits for the vulnerabilities found and uses them for penetration testing.",
       "goal": "your goal is to search exploits for the vulnerabilities found in the system and execute them to gain the foothold in the target system for further reconnaissance using kali linux tools.",
       "instructions": [
@@ -87,6 +94,7 @@
     "reporter": {
       "agentId": "reporter",
       "name": "reporter",
+      "model": "gemini-2.5-flash",
       "description": "an AI agent to report the gathering and data generated during a penetration testing to explain the security posture of the system and use the data for mitigation analysis, threat modelling and compliance.",
       "goal": "your goal is to explain the penetration test findings, data generated during the scans etc using your business accumen and technical knowledge.",
       "instructions": [

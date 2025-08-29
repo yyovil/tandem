@@ -74,12 +74,12 @@ func (cp *chatPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				utils.CmdHandler(chat.SessionClearedMsg{}),
 			)
 		case key.Matches(msg, keyMap.Cancel):
-			if cp.session.ID != "" {
-				// Cancel the current session's generation process
-				// This allows users to interrupt long-running operations
+			// Only intercept ESC to cancel when the agent is actively working.
+			if cp.session.ID != "" && cp.app.Orchestrator.IsSessionBusy(cp.session.ID) {
 				cp.app.Orchestrator.Cancel(cp.session.ID)
 				return cp, nil
 			}
+			// Otherwise, let ESC propagate to the editor (e.g., to exit EscapeShellMode).
 		}
 	}
 

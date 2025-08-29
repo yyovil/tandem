@@ -105,73 +105,80 @@ func (term *Terminal) Run(ctx context.Context, call ToolCall) (ToolResponse, err
 		cmd = append(cmd, args.Args...)
 	}
 
+	output, execErr := term.ExecuteCmd(ctx, cmd)
+	if execErr != nil {
+		return NewTextErrorResponse(execErr.Error()), nil
+	}
+	return ToolResponse{
+		Type:    ToolResponseTypeText,
+		Content: output,
+		IsError: false,
+	}, nil
+}
+
+// ExecuteCmd ensures the container is running and executes the provided command array inside it,
+// returning the combined stdout/stderr output or an error.
+func (term *Terminal) ExecuteCmd(ctx context.Context, cmd []string) (string, error) {
+	// Ensure we have a container ID; find one by ancestor image if missing
 	if term.containerId == "" {
 		summaries, err := term.client.ContainerList(ctx, container.ListOptions{
 			All:     true,
 			Filters: filters.NewArgs(filters.Arg("ancestor", DockerImage)),
 		})
 		if err != nil {
-			return NewTextErrorResponse("Failed to list containers: " + err.Error()), nil
+			logging.Error("Failed to list containers", err)
+			return "", fmt.Errorf("Failed to list containers: %w", err)
 		}
-
 		for _, summary := range summaries {
 			if summary.Image == DockerImage && summary.State == container.StateRunning {
 				term.containerId = summary.ID
 				break
 			}
-
-			if summary.Image == DockerImage {
+			if term.containerId == "" && summary.Image == DockerImage {
 				term.containerId = summary.ID
-				break
 			}
 		}
 	}
 
-	// NOTE: we are not creating a container if not found in the summaries because it should be created during the installation.
 	if term.containerId == "" {
-		return NewTextErrorResponse(fmt.Sprintf("couldn't find a container using %s image.", DockerImage)), nil
+		return "", fmt.Errorf("couldn't find a container using %s image.", DockerImage)
 	}
 
 	inspectRes, err := term.client.ContainerInspect(ctx, term.containerId)
 	if err != nil {
-		return NewTextErrorResponse("Failed to inspect container: " + err.Error()), nil
+		logging.Error(fmt.Sprintf("Failed to inspect container %s", term.containerId), err)
+		return "", fmt.Errorf("Failed to inspect container: %w", err)
 	}
 
 	if !inspectRes.State.Running {
 		if err := term.GetRunning(ctx, term.containerId, inspectRes.State.Status); err != nil {
-			return NewTextErrorResponse(fmt.Sprintf("couldn't get the container: %s running.", term.containerId)), nil
+			return "", fmt.Errorf("couldn't get the container: %s running", term.containerId)
 		}
 	}
 
-	// Execute the command inside the container (avoids interactive TTY read loop issues)
 	execResp, err := term.client.ContainerExecCreate(ctx, term.containerId, container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
 	})
 	if err != nil {
-		return NewTextErrorResponse("Failed to create exec: " + err.Error()), nil
+		return "", fmt.Errorf("Failed to create exec: %w", err)
 	}
 
 	attachResp, err := term.client.ContainerExecAttach(ctx, execResp.ID, container.ExecStartOptions{})
 	if err != nil {
-		return NewTextErrorResponse("Failed to attach exec: " + err.Error()), nil
+		return "", fmt.Errorf("Failed to attach exec: %w", err)
 	}
 	defer attachResp.Close()
 
 	outputBytes, err := io.ReadAll(attachResp.Reader)
 	if err != nil {
-		return NewTextErrorResponse("Failed to read exec output: " + err.Error()), nil
+		return "", fmt.Errorf("Failed to read exec output: %w", err)
 	}
 
 	output := string(outputBytes)
 	logging.Debug(fmt.Sprintf("terminal exec output (%s): %s", strings.Join(cmd, " "), truncateForLog(output)))
-
-	return ToolResponse{
-		Type:    ToolResponseTypeText,
-		Content: output,
-		IsError: false,
-	}, nil
+	return output, nil
 }
 
 // NOTE: GetRunning gets a docker container to container.StateRunning.

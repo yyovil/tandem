@@ -1,20 +1,25 @@
 package chat
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 	"unicode"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/uuid"
 	"github.com/yyovil/tandem/internal/app"
 	"github.com/yyovil/tandem/internal/logging"
 	"github.com/yyovil/tandem/internal/message"
 	"github.com/yyovil/tandem/internal/session"
+	"github.com/yyovil/tandem/internal/tools"
 	"github.com/yyovil/tandem/internal/tui/bubbles/dialog"
 	"github.com/yyovil/tandem/internal/tui/styles"
 	"github.com/yyovil/tandem/internal/tui/theme"
@@ -22,18 +27,20 @@ import (
 )
 
 type editorCmp struct {
-	width       int
-	height      int
-	app         *app.App
-	session     session.Session
-	textarea    textarea.Model
-	attachments []message.Attachment
-	deleteMode  bool
+	width           int
+	height          int
+	app             *app.App
+	session         session.Session
+	textarea        textarea.Model
+	attachments     []message.Attachment
+	EscapeShellMode bool
+	deleteMode      bool
 }
 
 type EditorKeyMaps struct {
-	Send       key.Binding
-	OpenEditor key.Binding
+	EscapeShellCmd key.Binding
+	Send           key.Binding
+	OpenEditor     key.Binding
 }
 
 type bluredEditorKeyMaps struct {
@@ -48,6 +55,10 @@ type DeleteAttachmentKeyMaps struct {
 }
 
 var editorMaps = EditorKeyMaps{
+	EscapeShellCmd: key.NewBinding(
+		key.WithKeys("ctrl+enter"),
+		key.WithHelp("ctrl+enter", "escape shell"),
+	),
 	Send: key.NewBinding(
 		key.WithKeys("enter", "ctrl+s"),
 		key.WithHelp("enter", "send message"),
@@ -130,6 +141,15 @@ func (m *editorCmp) send() tea.Cmd {
 	if value == "" {
 		return nil
 	}
+	// If we're in EscapeShellMode, treat the input as a shell command
+	if m.EscapeShellMode {
+		// Expect prefix "! " to indicate shell escape
+		cmdline := strings.TrimSpace(strings.TrimPrefix(value, "! "))
+		if cmdline == "" {
+			return nil
+		}
+		return m.EscapeShell(cmdline)
+	}
 	return tea.Batch(
 		utils.CmdHandler(SendMsg{
 			Text:        value,
@@ -182,6 +202,14 @@ func (m *editorCmp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.openEditor()
 		case key.Matches(msg, DeleteKeyMaps.Escape):
 			m.deleteMode = false
+			// Exit EscapeShellMode on ESC and remove leading "! " if present
+			if m.EscapeShellMode {
+				m.EscapeShellMode = false
+				val := m.textarea.Value()
+				if strings.HasPrefix(val, "! ") {
+					m.textarea.SetValue(strings.TrimPrefix(val, "! "))
+				}
+			}
 			return m, nil
 		case m.textarea.Focused() && key.Matches(msg, editorMaps.Send):
 			// Handle Enter key
@@ -197,7 +225,14 @@ func (m *editorCmp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	}
+	// First update textarea to capture latest input, then update modes/prompts
 	m.textarea, cmd = m.textarea.Update(msg)
+	// Enter EscapeShellMode when input starts with "! ". Trim the trigger from the textarea value.
+	val := m.textarea.Value()
+	if !m.EscapeShellMode && strings.HasPrefix(val, "! ") {
+		m.EscapeShellMode = true
+		m.textarea.SetValue(strings.TrimPrefix(val, "! "))
+	}
 	return m, cmd
 }
 
@@ -212,14 +247,20 @@ func (m *editorCmp) View() string {
 		Background(t.Background()).
 		Foreground(t.Primary())
 
+	prompt := ">"
+	if m.EscapeShellMode {
+		prompt = "!"
+		style = style.Foreground(t.Secondary())
+	}
+
 	if len(m.attachments) == 0 {
-		return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(">"), m.textarea.View())
+		return lipgloss.JoinHorizontal(lipgloss.Top, style.Render(prompt), m.textarea.View())
 	}
 
 	m.textarea.SetHeight(m.height - 1)
 	return lipgloss.JoinVertical(lipgloss.Top,
 		m.attachmentsContent(),
-		lipgloss.JoinHorizontal(lipgloss.Top, style.Render(">"),
+		lipgloss.JoinHorizontal(lipgloss.Top, style.Render(prompt),
 			m.textarea.View()),
 	)
 }
@@ -304,5 +345,74 @@ func NewEditorCmp(app *app.App) tea.Model {
 	return &editorCmp{
 		app:      app,
 		textarea: ta,
+	}
+}
+
+// EscapeShell executes a shell command inside the Kali Docker container and streams results into the chat as tool output.
+func (m *editorCmp) EscapeShell(cmdline string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		// Ensure session exists
+		if m.session.ID == "" {
+			sess, err := m.app.Sessions.Create(ctx, "Shell Session")
+			if err != nil {
+				return utils.InfoMsg{Type: utils.InfoTypeError, Msg: err.Error()}
+			}
+			m.session = sess
+			// Inform rest of the app about the new session
+			// Returning a SessionSelectedMsg won't prevent pubsub updates
+			// but we can still publish it by returning it after work below if needed.
+		}
+
+		// Create a user message reflecting the command
+		userText := "! " + cmdline
+		_, _ = m.app.Messages.Create(ctx, m.session.ID, message.CreateMessageParams{
+			Role:  message.User,
+			Parts: []message.ContentPart{message.TextContent{Text: userText}},
+		})
+
+		// Prepare tool call for terminal using the user's command and args as-is
+		fields := strings.Fields(cmdline)
+		if len(fields) == 0 {
+			return SessionSelectedMsg(m.session)
+		}
+		termArgs := tools.TerminalArgs{Command: fields[0]}
+		if len(fields) > 1 {
+			termArgs.Args = fields[1:]
+		}
+		payload, _ := json.Marshal(termArgs)
+		callID := uuid.New().String()
+
+		// Create assistant message with the tool call (marked finished so UI shows params + response)
+		assistantParts := []message.ContentPart{
+			message.ToolCall{ID: callID, Name: tools.TerminalToolName, Input: string(payload), Type: "", Finished: true},
+		}
+		_, _ = m.app.Messages.Create(ctx, m.session.ID, message.CreateMessageParams{
+			Role:  message.Assistant,
+			Parts: assistantParts,
+		})
+
+		// Run the tool (reuse ExecuteCmd for execution) without shell wrapping
+		tool := tools.NewDockerCli().(*tools.Terminal)
+		output, err := tool.ExecuteCmd(ctx, fields)
+		resp := tools.ToolResponse{Type: tools.ToolResponseTypeText, Content: output}
+		if err != nil {
+			resp = tools.NewTextErrorResponse("terminal execution failed: " + err.Error())
+		}
+
+		// Create tool result message
+		_, _ = m.app.Messages.Create(ctx, m.session.ID, message.CreateMessageParams{
+			Role: message.Tool,
+			Parts: []message.ContentPart{message.ToolResult{
+				ToolCallID: callID,
+				Content:    resp.Content,
+				Metadata:   resp.Metadata,
+				IsError:    resp.IsError,
+			}},
+		})
+
+		// If we had to create a new session locally, notify the rest of the app
+		return SessionSelectedMsg(m.session)
 	}
 }

@@ -305,8 +305,11 @@ func renderToolParams(paramWidth int, toolCall message.ToolCall) string {
 	case tools.TerminalToolName:
 		var params tools.TerminalArgs
 		json.Unmarshal([]byte(toolCall.Input), &params)
-		command := strings.ReplaceAll(params.Command, "\n", " ")
-		return renderParams(paramWidth, command)
+		// Show full command with args for clarity
+		parts := append([]string{params.Command}, params.Args...)
+		full := strings.Join(parts, " ")
+		full = strings.ReplaceAll(full, "\n", " ")
+		return renderParams(paramWidth, full)
 	// case tools.EditToolName:
 	// 	var params tools.EditParams
 	// 	json.Unmarshal([]byte(toolCall.Input), &params)
@@ -349,7 +352,12 @@ func renderToolResponse(toolCall message.ToolCall, response message.ToolResult, 
 			t.Background(),
 		)
 	case tools.TerminalToolName:
-		// NOTE: by default, we are going to get a bash shell but then dependending on the type of shell to be used, as configured by the user, it should be mentioned in here.
+		// NOTE: by default, we are going to get a bash shell but then depending on
+		// the type of shell to be used, as configured by the user, it should be
+		// mentioned in here.
+		// Trim any trailing newlines so we don't render an extra blank line inside
+		// the fenced code block.
+		resultContent = strings.TrimRight(resultContent, "\r\n")
 		resultContent = fmt.Sprintf("```bash\n%s\n```", resultContent)
 		return styles.ForceReplaceBackgroundWithLipgloss(
 			toMarkdown(resultContent, width),
