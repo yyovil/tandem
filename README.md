@@ -4,6 +4,40 @@
 Swarm of AI Agents to assist in a penetration testing engagement given a RoE.md stating Rules of Engagement.
 </p>
 
+## Installation
+
+### Quick Install
+
+Install Tandem with a single command using our installation script:
+
+```bash
+curl -fsSL https://tandem.codes/install.sh | bash
+```
+
+The installation script will:
+- Download the latest release for your platform (Linux/macOS, x86_64/arm64)
+- Install Tandem to `~/.tandem/bin`
+- Add the binary to your shell's PATH
+- Verify Docker is installed and running (required for agent tooling)
+- Set up default configuration files
+
+### Package Managers
+
+Support for popular package managers is coming soon:
+- **Homebrew** (macOS/Linux)
+- **Nix** (NixOS/Nix package manager)
+- **APT/YUM** (Linux distributions)
+
+*Package manager support will be available by end of day.*
+
+### Verification
+
+After installation, verify Tandem is working:
+
+```bash
+tandem --version
+```
+
 ## Configuration
 
 ### Setting up API Keys
