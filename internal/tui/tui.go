@@ -122,6 +122,9 @@ func New(app *app.App) tea.Model {
 		filepicker: dialog.NewFilepickerCmp(app),
 	}
 
+	// Set the session service for CRUD operations
+	model.sessionDialog.SetSessionService(app.Sessions)
+
 	return model
 }
 
@@ -303,6 +306,44 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, utils.CmdHandler(chat.SessionSelectedMsg(msg.Session))
 		}
 		return a, nil
+
+	case dialog.SessionCreatedMsg:
+		// Refresh the session list and optionally select the new session
+		sessions, err := a.app.Sessions.List(context.Background())
+		if err != nil {
+			return a, utils.ReportError(err)
+		}
+		a.sessionDialog.SetSessions(sessions)
+		return a, utils.ReportInfo(fmt.Sprintf("Session '%s' created", msg.Session.Title))
+
+	case dialog.SessionUpdatedMsg:
+		// Refresh the session list
+		sessions, err := a.app.Sessions.List(context.Background())
+		if err != nil {
+			return a, utils.ReportError(err)
+		}
+		a.sessionDialog.SetSessions(sessions)
+		// Update the selected session if it's the currently active one
+		if a.selectedSession.ID == msg.Session.ID {
+			a.selectedSession = msg.Session
+		}
+		return a, utils.ReportInfo(fmt.Sprintf("Session '%s' updated", msg.Session.Title))
+
+	case dialog.SessionDeletedMsg:
+		// Refresh the session list
+		sessions, err := a.app.Sessions.List(context.Background())
+		if err != nil {
+			return a, utils.ReportError(err)
+		}
+		a.sessionDialog.SetSessions(sessions)
+		// Clear the selected session if it was the deleted one
+		if a.selectedSession.ID == msg.SessionID {
+			a.selectedSession = session.Session{}
+			if a.currentPage == page.ChatPage {
+				return a, utils.CmdHandler(chat.SessionClearedMsg{})
+			}
+		}
+		return a, utils.ReportInfo("Session deleted")
 
 	case tea.KeyMsg:
 		switch {
