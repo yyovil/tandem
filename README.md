@@ -14,13 +14,6 @@ Install Tandem with a single command using our installation script:
 curl -fsSL https://tandem.codes/install.sh | bash
 ```
 
-The installation script will:
-- Download the latest release for your platform (Linux/macOS, x86_64/arm64)
-- Install Tandem to `~/.tandem/bin`
-- Add the binary to your shell's PATH
-- Verify Docker is installed and running (required for agent tooling)
-- Set up default configuration files
-
 ### Package Managers
 
 Support for popular package managers is coming soon:
