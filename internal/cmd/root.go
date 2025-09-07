@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/spf13/cobra"
+	authcmd "github.com/yyovil/tandem/internal/cmd/auth"
 	"github.com/yyovil/tandem/internal/app"
 	"github.com/yyovil/tandem/internal/config"
 	"github.com/yyovil/tandem/internal/db"
@@ -20,7 +21,7 @@ import (
 	"github.com/yyovil/tandem/internal/version"
 )
 
-var rootCmd = cobra.Command{
+var RootCmd = cobra.Command{
 	Use:   "tandem",
 	Short: "Swarm of AI Agents to assist in a penetration testing engagement given a RoE.md stating Rules of Engagement.",
 	// TODO: compelete this sweet ass description for the tandem later.
@@ -239,28 +240,31 @@ func attemptTUIRecovery(program *tea.Program) {
 }
 
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
-	rootCmd.Flags().BoolP("help", "h", false, "Help")
-	rootCmd.Flags().BoolP("version", "v", false, "Version")
-	rootCmd.Flags().BoolP("debug", "d", false, "Debug")
-	rootCmd.Flags().StringP("cwd", "c", "", "Current working directory")
-	rootCmd.Flags().StringP("prompt", "p", "", "Prompt to run in non-interactive mode")
+	RootCmd.Flags().BoolP("help", "h", false, "Help")
+	RootCmd.Flags().BoolP("version", "v", false, "Version")
+	RootCmd.Flags().BoolP("debug", "d", false, "Debug")
+	RootCmd.Flags().StringP("cwd", "c", "", "Current working directory")
+	RootCmd.Flags().StringP("prompt", "p", "", "Prompt to run in non-interactive mode")
 
 	// Add format flag with validation logic
-	rootCmd.Flags().StringP("output-format", "f", format.Text.String(),
+	RootCmd.Flags().StringP("output-format", "f", format.Text.String(),
 		"Output format for non-interactive mode (text, json)")
 
 	// Add quiet flag to hide spinner in non-interactive mode
-	rootCmd.Flags().BoolP("quiet", "q", false, "Hide spinner in non-interactive mode")
+	RootCmd.Flags().BoolP("quiet", "q", false, "Hide spinner in non-interactive mode")
 
 	// Register custom validation for the format flag
-	rootCmd.RegisterFlagCompletionFunc("output-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	RootCmd.RegisterFlagCompletionFunc("output-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return format.SupportedFormats, cobra.ShellCompDirectiveNoFileComp
 	})
+
+	// add auth command group
+	RootCmd.AddCommand(authcmd.NewCommand())
 }
